@@ -98,6 +98,8 @@ function navigate(route) {
   state.route = route;
   if (route === 'home') renderHome();
   if (route === 'tables') renderTables();
+  // 安全保險：若因任何原因事件未綁定，這裡補一層委派
+  attachCommonHandlers();
 }
 
 // Initial route
@@ -106,8 +108,8 @@ navigate('home');
 // ---------- Render: Tables List ----------
 function renderTables() {
   view.innerHTML = $('#tpl-tables').innerHTML;
-  setupInstallPrompt();
-  $('#addTableBtn').addEventListener('click', () => openEditTable());
+  const addBtn = $('#addTableBtn');
+  if (addBtn) addBtn.addEventListener('click', () => openEditTable());
   const list = $('#tableList');
   list.innerHTML = '';
   const tables = state.data.tables && state.data.tables.length ? state.data.tables : defaultTables;
@@ -321,6 +323,7 @@ function startCustomDrag(key, startIndex, startClientY) {
   row.style.left = '0';
   row.style.top = `${startTop}px`;
   row.style.zIndex = '5';
+  document.body.classList.add('dragging-global');
 
   function onMove(e) {
     const y = e.clientY - wrap.getBoundingClientRect().top - grabOffset;
@@ -353,7 +356,10 @@ function startCustomDrag(key, startIndex, startClientY) {
     row.style.top = '';
     row.style.width = '';
     row.style.zIndex = '';
-    row.removeEventListener('pointermove', onMove);
+    document.body.classList.remove('dragging-global');
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
 
     // 依據目前 DOM 順序重排資料
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
@@ -363,15 +369,16 @@ function startCustomDrag(key, startIndex, startClientY) {
     renderCycleList();
   }
 
-  row.addEventListener('pointermove', onMove);
-  row.addEventListener('pointerup', onUp, { once: true });
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
 }
 
 // ---------- Home / Training ----------
 function renderHome() {
   view.innerHTML = $('#tpl-home').innerHTML;
-  setupInstallPrompt();
-  $('#pickTableBtn').addEventListener('click', openPicker);
+  const pickBtn = $('#pickTableBtn');
+  if (pickBtn) pickBtn.addEventListener('click', openPicker);
   $('#startBtn').addEventListener('click', startSession);
   $('#pauseBtn').addEventListener('click', togglePause);
   $('#skipBtn').addEventListener('click', skipPhase);
@@ -382,38 +389,35 @@ function renderHome() {
   updateHomeUI();
 }
 
-// PWA install button handling
-let deferredPrompt = null;
-function setupInstallPrompt() {
-  const btn = $('#installBtn') || document.createElement('div');
-  if (!btn) return;
-  if (deferredPrompt) btn.style.display = 'inline-block';
-  window.addEventListener('beforeinstallprompt', (e) => {
+// 補救性事件委派：避免偶發沒掛到事件時，仍可操作
+function attachCommonHandlers() {
+  document.removeEventListener('click', delegatedClickHandler);
+  document.addEventListener('click', delegatedClickHandler);
+}
+function delegatedClickHandler(e) {
+  const target = e.target;
+  if (target.closest && target.closest('#pickTableBtn')) {
     e.preventDefault();
-    deferredPrompt = e;
-    btn.style.display = 'inline-block';
-  });
-  window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    btn.style.display = 'none';
-  });
-  btn.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    btn.style.display = 'none';
-  });
+    openPicker();
+    return;
+  }
+  if (target.closest && target.closest('#addTableBtn')) {
+    e.preventDefault();
+    openEditTable();
+    return;
+  }
 }
 
 function openPicker() {
+  // 若已有打開中的彈窗，先清掉避免疊加
+  $$('.modal-backdrop').forEach((el) => el.remove());
   const tpl = $('#tpl-picker').content ? $('#tpl-picker').content : null;
   // For broad browser support, clone from innerHTML
   const container = document.createElement('div');
   container.innerHTML = $('#tpl-picker').innerHTML;
-  document.body.appendChild(container.firstElementChild);
-  const backdrop = $('.modal-backdrop');
-  const list = $('#pickerList');
+  const backdrop = container.firstElementChild;
+  document.body.appendChild(backdrop);
+  const list = $('#pickerList', backdrop);
   const tables = state.data.tables && state.data.tables.length ? state.data.tables : defaultTables;
   if (!state.data.tables || state.data.tables.length === 0) {
     state.data.tables = JSON.parse(JSON.stringify(defaultTables));
@@ -432,14 +436,20 @@ function openPicker() {
       </div>
       <div class="meta">Total time: ${secToMMSS(t.cycles.reduce((s,c)=>s+c.hold+c.breath,0))}</div>
     `;
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
       state.currentTableId = t.id;
       backdrop.remove();
       updateHomeUI();
     });
     list.appendChild(card);
   });
-  $('#pickerCancel').addEventListener('click', () => backdrop.remove());
+  const cancelBtn = $('#pickerCancel', backdrop);
+  if (cancelBtn) cancelBtn.addEventListener('click', () => backdrop.remove());
+  // 點擊背板關閉
+  backdrop.addEventListener('click', (e) => {
+    if (e.target === backdrop) backdrop.remove();
+  });
 }
 
 function updateHomeUI() {
