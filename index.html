@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#2f3ba2" />
+    <title>Dive Trainer</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-bar">
+        <button id="menuBtn" class="icon-btn" aria-label="menu">☰</button>
+        <div class="app-title">Dive Trainer</div>
+        <div class="app-actions">
+          <button id="installBtn" class="btn" style="display:none">Install</button>
+        </div>
+      </header>
+
+      <nav id="drawer" class="drawer">
+        <div class="drawer-header">選單</div>
+        <button class="drawer-item" data-route="home">
+          <span class="icon">🏠</span> Home
+        </button>
+        <button class="drawer-item" data-route="tables">
+          <span class="icon">🧰</span> Tables
+        </button>
+      </nav>
+
+      <main id="view" class="view"></main>
+    </div>
+
+    <template id="tpl-home">
+      <section class="home">
+        <div class="timer-header">
+          <button id="spo2Badge" class="badge disabled" disabled>
+            <span class="small">SPO2:</span> --
+          </button>
+        </div>
+        <div class="timer">
+          <canvas id="ring" width="320" height="320"></canvas>
+          <div class="timer-center">
+            <div id="timeText" class="time">00:00</div>
+            <div id="phaseText" class="phase">Prepare</div>
+          </div>
+        </div>
+        <div class="controls primary">
+          <button id="pickTableBtn" class="btn">選擇 Table ▾</button>
+          <button id="startBtn" class="btn primary">開始</button>
+          <button id="markDiaphragmBtn" class="fab lung disabled" title="記錄橫膈膜第一次抽動" disabled>🫁</button>
+        </div>
+        <div id="sessionTableWrap" class="session-table"></div>
+        <div class="controls secondary" id="runningControls" hidden>
+          <button id="pauseBtn" class="ctrl warn">⏸</button>
+          <button id="skipBtn" class="ctrl danger">⤼</button>
+          <button id="plus10Btn" class="ctrl">+10s</button>
+          <button id="stopBtn" class="ctrl stop">■</button>
+        </div>
+      </section>
+    </template>
+
+    <template id="tpl-tables">
+      <section class="tables">
+        <header class="section-header">
+          <div class="title">Tables</div>
+          <button id="addTableBtn" class="icon-btn">＋</button>
+        </header>
+        <div id="tableList" class="card-list"></div>
+      </section>
+    </template>
+
+    <template id="tpl-edit-table">
+      <section class="edit-table">
+        <header class="section-header">
+          <button id="closeEditBtn" class="btn text">Close</button>
+          <div class="title" id="editTitle">Edit table</div>
+          <div class="row-actions">
+            <button id="addRowBtn" class="icon-btn">＋</button>
+            <button id="reorderBtn" class="icon-btn">⇅</button>
+            <button id="doneEditBtn" class="btn primary">Save</button>
+          </div>
+        </header>
+
+        <div class="form">
+          <label>Table name
+            <input id="tableNameInput" type="text" placeholder="例如：O2-table" />
+          </label>
+          <label>Table description
+            <input id="tableDescInput" type="text" placeholder="說明..." />
+          </label>
+        </div>
+
+        <div class="grid-header">
+          <div>#</div>
+          <div>Hold</div>
+          <div>Breath</div>
+          <div class="right"></div>
+        </div>
+        <div id="cycleList" class="cycle-list"></div>
+      </section>
+    </template>
+
+    <template id="tpl-picker">
+      <div class="modal-backdrop">
+        <div class="modal">
+          <div class="modal-title">Tables</div>
+          <div id="pickerList" class="card-list"></div>
+          <button id="pickerCancel" class="btn danger wide">Cancel</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-time-picker">
+      <div class="modal-backdrop">
+        <div class="modal">
+          <div class="modal-title">設定時間</div>
+          <div class="time-picker">
+            <div class="time-col">
+              <label>分鐘</label>
+              <select id="tpMin"></select>
+            </div>
+            <div class="time-col">
+              <label>秒</label>
+              <select id="tpSec"></select>
+            </div>
+          </div>
+          <div class="time-actions">
+            <button id="tpOk" class="btn primary">OK</button>
+            <button id="tpCancel" class="btn danger">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-confirm">
+      <div class="modal-backdrop">
+        <div class="confirm">
+          <div class="modal-title">尚未儲存變更</div>
+          <div class="msg">離開前要儲存嗎？</div>
+          <div class="actions">
+            <button id="cfCancel" class="btn">取消</button>
+            <button id="cfDiscard" class="btn danger">不儲存關閉</button>
+            <button id="cfSave" class="btn primary">儲存</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="app.js" type="module"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js');
+        });
+      }
+    </script>
+  </body>
+  </html>
+
+
