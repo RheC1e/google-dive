@@ -1,4 +1,4 @@
-const CACHE = 'dive-trainer-cache-v1';
+const CACHE = 'dive-trainer-cache-v2'; // bump version to avoid old cached JS
 const ASSETS = [
   './',
   './index.html',
@@ -7,9 +7,13 @@ const ASSETS = [
   './manifest.webmanifest'
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).then(self.skipWaiting())
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE);
+      await cache.addAll(ASSETS);
+      self.skipWaiting();
+    })()
   );
 });
 
