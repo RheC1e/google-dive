@@ -217,6 +217,14 @@ function renderCycleList() {
   const { table, reorderMode } = state.editing;
   const wrap = $('#cycleList');
   wrap.innerHTML = '';
+  // 在拖曳模式下禁用滾動
+  if (reorderMode) {
+    wrap.style.overflow = 'hidden';
+    wrap.style.touchAction = 'none';
+  } else {
+    wrap.style.overflow = '';
+    wrap.style.touchAction = '';
+  }
   const beforeRects = getRects(wrap);
   table.cycles.forEach((c, i) => {
     const row = document.createElement('div');
@@ -253,10 +261,64 @@ function renderCycleList() {
       });
     } else {
       // 自訂拖曳：列跟著手指移動，經過時即時交換位置
-      row.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        startCustomDrag(c._k, i, e.clientY);
-      });
+      const handle = $('.handle', row);
+      if (handle) {
+        let dragStarted = false;
+        let touchStartY = 0;
+        let touchStartTime = 0;
+        
+        // 使用 touchstart 和 pointerdown 來處理移動設備
+        const startDrag = (e) => {
+          // 防止默認行為
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // 記錄觸摸起始位置和時間
+          if (e.touches) {
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+          }
+          
+          const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+          dragStarted = true;
+          startCustomDrag(c._k, i, clientY, e);
+        };
+        
+        // 防止觸摸滾動
+        const preventScroll = (e) => {
+          if (dragStarted) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        };
+        
+        // 處理觸摸開始 - 使用 capture phase 確保優先處理
+        handle.addEventListener('touchstart', startDrag, { passive: false, capture: true });
+        handle.addEventListener('pointerdown', startDrag, { capture: true });
+        
+        // 防止文字選取和上下文菜單 - 使用 capture phase
+        const preventSelect = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        };
+        handle.addEventListener('selectstart', preventSelect, { capture: true });
+        handle.addEventListener('contextmenu', preventSelect, { capture: true });
+        handle.addEventListener('dragstart', preventSelect, { capture: true });
+        handle.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
+        
+        // 在 row 層級也防止選取
+        row.addEventListener('selectstart', preventSelect, { capture: true });
+        row.addEventListener('contextmenu', preventSelect, { capture: true });
+        row.addEventListener('dragstart', preventSelect, { capture: true });
+        
+        // 重置標記
+        const resetDrag = () => {
+          dragStarted = false;
+        };
+        handle.addEventListener('touchend', resetDrag);
+        handle.addEventListener('touchcancel', resetDrag);
+      }
     }
     wrap.appendChild(row);
   });
@@ -301,13 +363,21 @@ function getRects(wrap) {
 }
 
 // 自訂拖曳：被拖曳列會跟隨手指，滑過其他列時即時重排
-function startCustomDrag(key, startIndex, startClientY) {
+function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const wrap = $('#cycleList');
   const { table } = state.editing;
   let row = $(`.cycle-row[data-key="${key}"]`, wrap);
   if (!row) return;
+  
+  // 防止頁面滾動和文字選取
+  if (startEvent) {
+    startEvent.preventDefault();
+    startEvent.stopPropagation();
+  }
+  
   const rowHeight = row.offsetHeight;
   const startTop = row.offsetTop;
+  const wrapRect = wrap.getBoundingClientRect();
   const grabOffset = startClientY - row.getBoundingClientRect().top;
 
   // 佔位元，避免 layout 抽掉高度
@@ -324,18 +394,39 @@ function startCustomDrag(key, startIndex, startClientY) {
   row.style.top = `${startTop}px`;
   row.style.zIndex = '5';
   document.body.classList.add('dragging-global');
+  
+  // 禁用滾動和文字選取
+  const originalOverflow = document.body.style.overflow;
+  const originalTouchAction = document.body.style.touchAction;
+  const originalUserSelect = document.body.style.userSelect;
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+  document.body.style.userSelect = 'none';
+  document.body.style.webkitUserSelect = 'none';
+  document.body.style.webkitTouchCallout = 'none';
+  
+  // 禁用wrap的滾動
+  const originalWrapOverflow = wrap.style.overflow;
+  wrap.style.overflow = 'hidden';
+
+  function getClientY(e) {
+    return e.touches ? e.touches[0].clientY : e.clientY;
+  }
 
   function onMove(e) {
-    const y = e.clientY - wrap.getBoundingClientRect().top - grabOffset;
+    e.preventDefault();
+    e.stopPropagation();
+    const clientY = getClientY(e);
+    const y = clientY - wrapRect.top - grabOffset;
     row.style.top = `${y}px`;
     // 計算應插入 index：看滑過的中心
-    const siblings = Array.from(wrap.children).filter((el) => el !== row);
+    const siblings = Array.from(wrap.children).filter((el) => el !== row && el !== placeholder);
     let target = siblings.length;
     for (let i = 0; i < siblings.length; i++) {
       const el = siblings[i];
       const rect = el.getBoundingClientRect();
       const center = rect.top + rect.height / 2;
-      if (e.clientY < center) { target = i; break; }
+      if (clientY < center) { target = i; break; }
     }
     const currentPlaceholderIndex = siblings.indexOf(placeholder);
     if (target !== currentPlaceholderIndex) {
@@ -346,7 +437,11 @@ function startCustomDrag(key, startIndex, startClientY) {
       }
     }
   }
-  function onUp() {
+  function onUp(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     // 將 row 放回 placeholder 位置
     wrap.insertBefore(row, placeholder);
     placeholder.remove();
@@ -357,9 +452,25 @@ function startCustomDrag(key, startIndex, startClientY) {
     row.style.width = '';
     row.style.zIndex = '';
     document.body.classList.remove('dragging-global');
+    
+    // 恢復滾動和文字選取
+    document.body.style.overflow = originalOverflow;
+    document.body.style.touchAction = originalTouchAction;
+    document.body.style.userSelect = originalUserSelect;
+    document.body.style.webkitUserSelect = '';
+    document.body.style.webkitTouchCallout = '';
+    wrap.style.overflow = originalWrapOverflow;
+    
+    // 移除所有事件監聽器
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onUp);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+    window.removeEventListener('touchcancel', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+    document.removeEventListener('touchcancel', onUp);
 
     // 依據目前 DOM 順序重排資料
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
@@ -369,9 +480,16 @@ function startCustomDrag(key, startIndex, startClientY) {
     renderCycleList();
   }
 
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp);
-  window.addEventListener('pointercancel', onUp);
+  // 同時支援 pointer 和 touch 事件，使用 capture phase
+  window.addEventListener('pointermove', onMove, { passive: false, capture: true });
+  window.addEventListener('pointerup', onUp, { passive: false, capture: true });
+  window.addEventListener('pointercancel', onUp, { passive: false, capture: true });
+  window.addEventListener('touchmove', onMove, { passive: false, capture: true });
+  window.addEventListener('touchend', onUp, { passive: false, capture: true });
+  window.addEventListener('touchcancel', onUp, { passive: false, capture: true });
+  document.addEventListener('touchmove', onMove, { passive: false, capture: true });
+  document.addEventListener('touchend', onUp, { passive: false, capture: true });
+  document.addEventListener('touchcancel', onUp, { passive: false, capture: true });
 }
 
 // ---------- Home / Training ----------
@@ -482,19 +600,36 @@ function renderSessionTable() {
   t.cycles.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'cycle-row';
+    
+    // 判斷是否為當前活動的循環
+    const isActiveCycle = state.session && state.session.index === i;
+    const isHoldPhase = state.session && state.session.phase === 'hold' && state.session.index === i;
+    const isBreathPhase = state.session && state.session.phase === 'breath' && state.session.index === i;
+    
+    if (isActiveCycle) {
+      row.classList.add('active-row');
+    }
+    
     const marker =
       state.session && state.session.contractions[i] != null
         ? `<div style="color:#ff9800;font-size:12px"> ${secToMMSS(state.session.contractions[i])}</div>`
         : '';
-    const playing =
-      state.session && state.session.index === i && (state.session.phase === 'hold' || state.session.phase === 'breath');
+    
+    // 根據階段顯示箭頭
+    const holdIndicator = isHoldPhase ? '<span class="active-indicator">▶</span>' : '';
+    const breathIndicator = isBreathPhase ? '<span class="active-indicator">▶</span>' : '';
+    
     row.innerHTML = `
-      <div>${playing ? '▶' : i + 1}</div>
-      <div style="display:flex;flex-direction:column;align-items:center">
+      <div>${i + 1}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;position:relative">
+        ${holdIndicator}
         <div>${secToMMSS(c.hold)}${state.session && state.session.addedSeconds[i] ? ` + ${state.session.addedSeconds[i]}` : ''}</div>
         ${marker}
       </div>
-      <div>${secToMMSS(c.breath)}</div>
+      <div style="display:flex;flex-direction:column;align-items:center;position:relative">
+        ${breathIndicator}
+        <div>${secToMMSS(c.breath)}</div>
+      </div>
       <div></div>
     `;
     wrap.appendChild(row);

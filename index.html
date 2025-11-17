@@ -32,30 +32,32 @@
 
     <template id="tpl-home">
       <section class="home">
-        <div class="timer-header">
-          <button id="spo2Badge" class="badge disabled" disabled>
-            <span class="small">SPO2:</span> --
-          </button>
-        </div>
-        <div class="timer">
-          <canvas id="ring" width="320" height="320"></canvas>
-          <div class="timer-center">
-            <div id="timeText" class="time">00:00</div>
-            <div id="phaseText" class="phase">Prepare</div>
+        <div class="home-fixed">
+          <div class="timer-header">
+            <button id="spo2Badge" class="badge disabled" disabled>
+              <span class="small">SPO2:</span> --
+            </button>
+          </div>
+          <div class="timer">
+            <canvas id="ring" width="320" height="320"></canvas>
+            <div class="timer-center">
+              <div id="timeText" class="time">00:00</div>
+              <div id="phaseText" class="phase">Prepare</div>
+            </div>
+          </div>
+          <div class="controls primary">
+            <button id="pickTableBtn" class="btn">選擇 Table ▾</button>
+            <button id="startBtn" class="btn primary">開始</button>
+            <button id="markDiaphragmBtn" class="fab lung disabled" title="記錄橫膈膜第一次抽動" disabled>🫁</button>
+          </div>
+          <div class="controls secondary" id="runningControls" hidden>
+            <button id="pauseBtn" class="ctrl warn">⏸</button>
+            <button id="skipBtn" class="ctrl danger">⤼</button>
+            <button id="plus10Btn" class="ctrl">+10s</button>
+            <button id="stopBtn" class="ctrl stop">■</button>
           </div>
         </div>
-        <div class="controls primary">
-          <button id="pickTableBtn" class="btn">選擇 Table ▾</button>
-          <button id="startBtn" class="btn primary">開始</button>
-          <button id="markDiaphragmBtn" class="fab lung disabled" title="記錄橫膈膜第一次抽動" disabled>🫁</button>
-        </div>
         <div id="sessionTableWrap" class="session-table"></div>
-        <div class="controls secondary" id="runningControls" hidden>
-          <button id="pauseBtn" class="ctrl warn">⏸</button>
-          <button id="skipBtn" class="ctrl danger">⤼</button>
-          <button id="plus10Btn" class="ctrl">+10s</button>
-          <button id="stopBtn" class="ctrl stop">■</button>
-        </div>
       </section>
     </template>
 
