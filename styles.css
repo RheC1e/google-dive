@@ -124,7 +124,6 @@ body{
   margin-left:auto;
   margin-right:auto;
   padding:0;
-  -webkit-overflow-scrolling:touch;
 }
 .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .time{font-size:44px;font-weight:800}
@@ -197,6 +196,41 @@ body{
 .time-cell .diag{
   color:var(--accent);
   font-size:12px;
+}
+
+@media (max-width:768px){
+  .home{
+    padding-bottom:16px;
+  }
+  .home .timer{
+    width:min(78vw,300px);
+  }
+  .session-table{
+    max-height:calc(100vh - 420px);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+}
+
+@media (max-width:480px){
+  .home .timer{
+    width:min(74vw,260px);
+  }
+  .home .controls.primary,
+  .home .controls.secondary{
+    gap:6px;
+  }
+}
+
+@media (min-width:1024px){
+  .home-fixed{
+    position:static;
+    top:auto;
+  }
+  .session-table{
+    max-height:none;
+    overflow:visible;
+  }
 }
 .row-placeholder{
   border-top:1px dashed var(--line);

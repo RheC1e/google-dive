@@ -80,6 +80,41 @@ const state = {
   session: null, // created after start
 };
 
+function adjustSessionTableHeight() {
+  const wrap = $('#sessionTableWrap');
+  const fixed = $('.home-fixed');
+  if (!wrap || !fixed) return;
+  if (window.innerWidth > 768) {
+    wrap.style.maxHeight = '';
+    wrap.style.overflowY = '';
+    wrap.style.webkitOverflowScrolling = '';
+    return;
+  }
+  const fixedRect = fixed.getBoundingClientRect();
+  const available = Math.max(200, window.innerHeight - fixedRect.bottom - 24);
+  wrap.style.maxHeight = `${available}px`;
+  wrap.style.overflowY = 'auto';
+  wrap.style.webkitOverflowScrolling = 'touch';
+}
+
+function scrollRowIntoView(row) {
+  const wrap = $('#sessionTableWrap');
+  if (!wrap) return;
+  const overflow = getComputedStyle(wrap).overflowY;
+  if (overflow !== 'auto' && overflow !== 'scroll') return;
+  const rowTop = row.offsetTop;
+  const rowBottom = rowTop + row.offsetHeight;
+  const viewTop = wrap.scrollTop;
+  const viewBottom = viewTop + wrap.clientHeight;
+  if (rowTop < viewTop || rowBottom > viewBottom) {
+    const target = rowTop - wrap.clientHeight / 2 + row.offsetHeight / 2;
+    wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+  }
+}
+
+window.addEventListener('resize', adjustSessionTableHeight);
+window.addEventListener('orientationchange', adjustSessionTableHeight);
+
 // Navigation & Drawer
 const view = $('#view');
 const drawer = $('#drawer');
@@ -217,6 +252,7 @@ function renderCycleList() {
   const { table, reorderMode } = state.editing;
   const wrap = $('#cycleList');
   wrap.innerHTML = '';
+  wrap.classList.toggle('reorder-mode', !!reorderMode);
   const beforeRects = getRects(wrap);
   table.cycles.forEach((c, i) => {
     const row = document.createElement('div');
@@ -508,6 +544,7 @@ function renderHome() {
   $('#markDiaphragmBtn').addEventListener('click', markDiaphragm);
   drawRing(0, '#2a2f3b', '#3a4152');
   updateHomeUI();
+  adjustSessionTableHeight();
 }
 
 // 補救性事件委派：避免偶發沒掛到事件時，仍可操作
@@ -579,15 +616,20 @@ function updateHomeUI() {
   const lung = $('#markDiaphragmBtn');
   const running = !!state.session;
   const pauseBtn = $('#pauseBtn');
+  const skipBtn = $('#skipBtn');
+  const paused = running && state.session.paused;
   if (!running) {
     $('#runningControls').hidden = true;
     lung.classList.add('disabled');
     lung.disabled = true;
+    if (skipBtn) skipBtn.disabled = true;
     if (pauseBtn) pauseBtn.textContent = '⏸';
   } else {
     $('#runningControls').hidden = false;
-    lung.classList.toggle('disabled', !(state.session.phase === 'hold'));
-    lung.disabled = !(state.session.phase === 'hold');
+    const holdActive = state.session.phase === 'hold' && !paused;
+    lung.classList.toggle('disabled', !holdActive);
+    lung.disabled = !holdActive;
+    if (skipBtn) skipBtn.disabled = paused;
     if (pauseBtn) {
       pauseBtn.textContent = state.session.paused ? '▶' : '⏸';
       pauseBtn.title = state.session.paused ? '繼續' : '暫停';
@@ -601,6 +643,7 @@ function renderSessionTable() {
   wrap.innerHTML = '';
   const t = state.data.tables.find((x) => x.id === state.currentTableId);
   if (!t) return;
+  let activeRowEl = null;
   // header
   const header = document.createElement('div');
   header.className = 'grid-header';
@@ -615,6 +658,7 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
+    if (isActiveCycle) activeRowEl = row;
 
     const added = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
     const contractionMarker =
@@ -644,6 +688,8 @@ function renderSessionTable() {
     `;
     wrap.appendChild(row);
   });
+  adjustSessionTableHeight();
+  if (activeRowEl) scrollRowIntoView(activeRowEl);
 }
 
 // Session handling
@@ -663,7 +709,8 @@ function startSession() {
     lastTick: performance.now(),
     contractions: {}, // cycleIndex -> seconds from start of hold
     holdStartSec: null,
-    addedSeconds: {}, // cycleIndex -> added seconds total
+    addedSeconds: {}, // cycleIndex -> added seconds total (hold)
+    breathAddedSeconds: {}, // cycleIndex -> added seconds total (breath)
   };
   $('#startBtn').disabled = true;
   tick();
@@ -695,6 +742,9 @@ function adjustRemaining(sec) {
   if (state.session.phase === 'hold') {
     const i = state.session.index;
     state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + sec;
+  } else if (state.session.phase === 'breath') {
+    const i = state.session.index;
+    state.session.breathAddedSeconds[i] = (state.session.breathAddedSeconds[i] || 0) + sec;
   }
   updateHomeUI();
 }
@@ -744,28 +794,40 @@ function tick(now = performance.now()) {
     s.phaseRemaining -= dt;
     if (s.phaseRemaining <= 0) {
       nextPhase();
+      return;
     }
   }
   // draw
   $('#phaseText').textContent =
     s.phase === 'prepare' ? 'Prepare' : s.phase === 'hold' ? 'Hold' : 'Breath';
   $('#timeText').textContent = secToMMSS(s.phaseRemaining);
+  const table = state.data.tables.find((x) => x.id === s.tableId);
+  const holdAdded = s.phase === 'hold' ? (s.addedSeconds[s.index] || 0) : 0;
+  const breathAdded = s.phase === 'breath' ? (s.breathAddedSeconds[s.index] || 0) : 0;
   const planned =
     s.phase === 'prepare'
       ? 10
       : s.phase === 'hold'
-      ? s.holdPlanned
-      : state.data.tables
-          .find((x) => x.id === s.tableId)
-          .cycles[s.index].breath;
-  const progress = Math.max(0, Math.min(1, 1 - s.phaseRemaining / planned));
+      ? s.holdPlanned + holdAdded
+      : table && table.cycles[s.index]
+      ? table.cycles[s.index].breath + breathAdded
+      : 0;
+  const progress = planned > 0 ? Math.max(0, Math.min(1, 1 - s.phaseRemaining / planned)) : 0;
   const color =
     s.phase === 'prepare' ? '#3b82f6' : s.phase === 'hold' ? '#ef5350' : '#26a69a';
-  drawRing(progress, color, '#3a4152');
+  let markFraction = null;
+  if (s.phase === 'hold') {
+    const contraction = s.contractions[s.index];
+    const totalHold = s.holdPlanned + holdAdded;
+    if (contraction != null && totalHold > 0) {
+      markFraction = Math.max(0, Math.min(1, contraction / totalHold));
+    }
+  }
+  drawRing(progress, color, '#3a4152', markFraction);
   rafId = requestAnimationFrame(tick);
 }
 
-function drawRing(progress, color, bg) {
+function drawRing(progress, color, bg, markFraction = null) {
   const c = $('#ring');
   const ctx = c.getContext('2d');
   const w = c.width;
@@ -781,12 +843,29 @@ function drawRing(progress, color, bg) {
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
   // progress
-  ctx.strokeStyle = color;
-  ctx.beginPath();
+  const tau = Math.PI * 2;
   const start = -Math.PI / 2;
-  const end = start + Math.PI * 2 * progress;
-  ctx.arc(cx, cy, r, start, end);
-  ctx.stroke();
+  const end = start + tau * progress;
+  const hasMark = typeof markFraction === 'number' && !Number.isNaN(markFraction);
+  const clampedMark = hasMark ? Math.max(0, Math.min(1, markFraction)) : null;
+  ctx.lineWidth = 18;
+  if (progress <= 0) return;
+  if (clampedMark != null && progress > clampedMark) {
+    const splitAngle = start + tau * clampedMark;
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, splitAngle);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffca28';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, splitAngle, end);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, end);
+    ctx.stroke();
+  }
 }
 
 // ---------- Time Picker ----------
