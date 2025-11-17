@@ -217,21 +217,13 @@ function renderCycleList() {
   const { table, reorderMode } = state.editing;
   const wrap = $('#cycleList');
   wrap.innerHTML = '';
-  // 在拖曳模式下禁用滾動
-  if (reorderMode) {
-    wrap.style.overflow = 'hidden';
-    wrap.style.touchAction = 'none';
-  } else {
-    wrap.style.overflow = '';
-    wrap.style.touchAction = '';
-  }
   const beforeRects = getRects(wrap);
   table.cycles.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'cycle-row';
     row.dataset.key = c._k;
-    row.draggable = !!reorderMode;
-    row.style.cursor = reorderMode ? 'grab' : 'default';
+    row.draggable = false;
+    row.style.cursor = 'default';
     row.innerHTML = `
       <div class="idx">${i + 1}</div>
       <div><button class="btn" data-kind="hold">${secToMMSS(c.hold)}</button></div>
@@ -399,6 +391,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const originalOverflow = document.body.style.overflow;
   const originalTouchAction = document.body.style.touchAction;
   const originalUserSelect = document.body.style.userSelect;
+  const originalWebkitUserSelect = document.body.style.webkitUserSelect;
+  const originalWebkitTouchCallout = document.body.style.webkitTouchCallout;
   document.body.style.overflow = 'hidden';
   document.body.style.touchAction = 'none';
   document.body.style.userSelect = 'none';
@@ -407,7 +401,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   
   // 禁用wrap的滾動
   const originalWrapOverflow = wrap.style.overflow;
+  const originalWrapTouchAction = wrap.style.touchAction;
   wrap.style.overflow = 'hidden';
+  wrap.style.touchAction = 'none';
 
   function getClientY(e) {
     return e.touches ? e.touches[0].clientY : e.clientY;
@@ -437,6 +433,18 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       }
     }
   }
+  function cleanupListeners() {
+    window.removeEventListener('pointermove', onMove, true);
+    window.removeEventListener('pointerup', onUp, true);
+    window.removeEventListener('pointercancel', onUp, true);
+    window.removeEventListener('touchmove', onMove, true);
+    window.removeEventListener('touchend', onUp, true);
+    window.removeEventListener('touchcancel', onUp, true);
+    document.removeEventListener('touchmove', onMove, true);
+    document.removeEventListener('touchend', onUp, true);
+    document.removeEventListener('touchcancel', onUp, true);
+  }
+
   function onUp(e) {
     if (e) {
       e.preventDefault();
@@ -457,20 +465,13 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     document.body.style.overflow = originalOverflow;
     document.body.style.touchAction = originalTouchAction;
     document.body.style.userSelect = originalUserSelect;
-    document.body.style.webkitUserSelect = '';
-    document.body.style.webkitTouchCallout = '';
+    document.body.style.webkitUserSelect = originalWebkitUserSelect;
+    document.body.style.webkitTouchCallout = originalWebkitTouchCallout;
     wrap.style.overflow = originalWrapOverflow;
+    wrap.style.touchAction = originalWrapTouchAction;
     
     // 移除所有事件監聽器
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    window.removeEventListener('pointercancel', onUp);
-    window.removeEventListener('touchmove', onMove);
-    window.removeEventListener('touchend', onUp);
-    window.removeEventListener('touchcancel', onUp);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('touchend', onUp);
-    document.removeEventListener('touchcancel', onUp);
+    cleanupListeners();
 
     // 依據目前 DOM 順序重排資料
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
@@ -490,6 +491,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   document.addEventListener('touchmove', onMove, { passive: false, capture: true });
   document.addEventListener('touchend', onUp, { passive: false, capture: true });
   document.addEventListener('touchcancel', onUp, { passive: false, capture: true });
+
+  window.addEventListener('blur', onUp, { once: true });
 }
 
 // ---------- Home / Training ----------
@@ -575,14 +578,20 @@ function updateHomeUI() {
   $('#pickTableBtn').textContent = t ? `${t.name} ▾` : '選擇 Table ▾';
   const lung = $('#markDiaphragmBtn');
   const running = !!state.session;
+  const pauseBtn = $('#pauseBtn');
   if (!running) {
     $('#runningControls').hidden = true;
     lung.classList.add('disabled');
     lung.disabled = true;
+    if (pauseBtn) pauseBtn.textContent = '⏸';
   } else {
     $('#runningControls').hidden = false;
     lung.classList.toggle('disabled', !(state.session.phase === 'hold'));
     lung.disabled = !(state.session.phase === 'hold');
+    if (pauseBtn) {
+      pauseBtn.textContent = state.session.paused ? '▶' : '⏸';
+      pauseBtn.title = state.session.paused ? '繼續' : '暫停';
+    }
   }
   renderSessionTable();
 }
@@ -600,35 +609,36 @@ function renderSessionTable() {
   t.cycles.forEach((c, i) => {
     const row = document.createElement('div');
     row.className = 'cycle-row';
-    
-    // 判斷是否為當前活動的循環
-    const isActiveCycle = state.session && state.session.index === i;
-    const isHoldPhase = state.session && state.session.phase === 'hold' && state.session.index === i;
-    const isBreathPhase = state.session && state.session.phase === 'breath' && state.session.index === i;
-    
-    if (isActiveCycle) {
-      row.classList.add('active-row');
-    }
-    
-    const marker =
-      state.session && state.session.contractions[i] != null
-        ? `<div style="color:#ff9800;font-size:12px"> ${secToMMSS(state.session.contractions[i])}</div>`
+
+    const session = state.session;
+    const isActiveCycle = session && session.index === i;
+    const isHoldPhase = session && session.phase === 'hold' && session.index === i;
+    const isBreathPhase = session && session.phase === 'breath' && session.index === i;
+    if (isActiveCycle) row.classList.add('active-row');
+
+    const added = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
+    const contractionMarker =
+      session && session.contractions[i] != null
+        ? `<div class="diag"> ${secToMMSS(session.contractions[i])}</div>`
         : '';
-    
-    // 根據階段顯示箭頭
-    const holdIndicator = isHoldPhase ? '<span class="active-indicator">▶</span>' : '';
-    const breathIndicator = isBreathPhase ? '<span class="active-indicator">▶</span>' : '';
-    
+
+    const holdIndicator = isHoldPhase ? '<span class="phase-indicator">▶</span>' : '';
+    const breathIndicator = isBreathPhase ? '<span class="phase-indicator">▶</span>' : '';
+
     row.innerHTML = `
       <div>${i + 1}</div>
-      <div style="display:flex;flex-direction:column;align-items:center;position:relative">
-        ${holdIndicator}
-        <div>${secToMMSS(c.hold)}${state.session && state.session.addedSeconds[i] ? ` + ${state.session.addedSeconds[i]}` : ''}</div>
-        ${marker}
+      <div class="time-cell ${isHoldPhase ? 'active-phase' : ''}">
+        <div class="main">
+          ${holdIndicator}
+          <span>${secToMMSS(c.hold)}${added}</span>
+        </div>
+        ${contractionMarker}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;position:relative">
-        ${breathIndicator}
-        <div>${secToMMSS(c.breath)}</div>
+      <div class="time-cell ${isBreathPhase ? 'active-phase' : ''}">
+        <div class="main">
+          ${breathIndicator}
+          <span>${secToMMSS(c.breath)}</span>
+        </div>
       </div>
       <div></div>
     `;
@@ -664,6 +674,7 @@ function togglePause() {
   if (!state.session) return;
   state.session.paused = !state.session.paused;
   state.session.lastTick = performance.now();
+  updateHomeUI();
 }
 function skipPhase() {
   if (!state.session) return;
@@ -683,7 +694,7 @@ function adjustRemaining(sec) {
   state.session.phaseRemaining += sec;
   if (state.session.phase === 'hold') {
     const i = state.session.index;
-    state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + 10;
+    state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + sec;
   }
   updateHomeUI();
 }
@@ -691,7 +702,9 @@ function markDiaphragm() {
   if (!state.session || state.session.phase !== 'hold') return;
   const i = state.session.index;
   if (state.session.contractions[i] != null) return;
-  const elapsed = state.session.holdPlanned - state.session.phaseRemaining;
+  const added = state.session.addedSeconds[i] || 0;
+  const totalPlanned = state.session.holdPlanned + added;
+  const elapsed = totalPlanned - state.session.phaseRemaining;
   state.session.contractions[i] = Math.max(0, Math.round(elapsed));
   updateHomeUI();
 }

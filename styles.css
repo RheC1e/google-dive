@@ -13,15 +13,13 @@
 *{box-sizing:border-box}
 html,body{
   height:100%;
-  overflow:hidden;
-  position:fixed;
+  min-height:100%;
   width:100%;
 }
 #app{
-  height:100vh;
+  min-height:100vh;
   display:flex;
   flex-direction:column;
-  overflow:hidden;
   position:relative;
 }
 body{
@@ -36,8 +34,9 @@ body{
   display:flex; align-items:center; gap:12px;
   height:56px; padding:0 12px;
   background:var(--primary);
-  flex-shrink:0;
-  z-index:2;
+  position:sticky;
+  top:0;
+  z-index:5;
 }
 .app-title{font-weight:700}
 .icon-btn,.btn,.ctrl{
@@ -66,10 +65,8 @@ body{
 .view{
   padding:10px 12px 24px 12px;
   flex:1;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
+  display:block;
+  min-height:calc(100vh - 56px);
 }
 .section-header{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
 .title{font-size:20px;font-weight:700}
@@ -80,21 +77,21 @@ body{
 .card .desc{color:var(--muted);font-size:14px}
 .card .meta{margin-top:6px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:6px}
 .home{
-  display:flex;
-  flex-direction:column;
-  height:100%;
-  overflow:hidden;
   position:relative;
+  min-height:calc(100vh - 56px);
+  padding:8px 0 24px 0;
 }
 .home-fixed{
-  flex-shrink:0;
+  position:sticky;
+  top:56px;
   display:flex;
   flex-direction:column;
   align-items:center;
   gap:8px;
-  padding-bottom:8px;
+  padding-bottom:12px;
   background:var(--bg);
-  z-index:1;
+  z-index:2;
+  width:100%;
 }
 .home .timer-header{
   flex-shrink:0;
@@ -105,7 +102,11 @@ body{
   display:flex;
   justify-content:center;
   margin:8px 0 6px;
-  flex-shrink:0;
+  width:min(92vw,360px);
+}
+.home .timer canvas{
+  width:100%;
+  height:auto;
 }
 .home .controls.primary{
   flex-shrink:0;
@@ -116,10 +117,7 @@ body{
   margin-top:6px;
 }
 .session-table{
-  flex:1;
-  overflow-y:auto;
-  overflow-x:hidden;
-  margin-top:0;
+  margin-top:12px;
   border-top:1px solid var(--line);
   width:100%;
   max-width:640px;
@@ -127,7 +125,6 @@ body{
   margin-right:auto;
   padding:0;
   -webkit-overflow-scrolling:touch;
-  min-height:0;
 }
 .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .time{font-size:44px;font-weight:800}
@@ -178,6 +175,28 @@ body{
 .cycle-row.active-row{
   background:rgba(57,73,171,.15);
   border-left:3px solid var(--primary);
+}
+.time-cell{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+.time-cell .main{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.time-cell .phase-indicator{
+  color:var(--accent);
+  font-size:16px;
+}
+.time-cell.active-phase .main span{
+  font-weight:700;
+}
+.time-cell .diag{
+  color:var(--accent);
+  font-size:12px;
 }
 .row-placeholder{
   border-top:1px dashed var(--line);
@@ -280,24 +299,6 @@ button:disabled{opacity:.5;pointer-events:none}
 .session-table .grid-header > div,
 .session-table .cycle-row > div{
   display:flex;align-items:center;justify-content:center;
-}
-.session-table .cycle-row.active-row > div:nth-child(2),
-.session-table .cycle-row.active-row > div:nth-child(3){
-  position:relative;
-}
-.session-table .cycle-row.active-row .active-indicator{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  font-size:20px;
-  color:var(--primary);
-  font-weight:bold;
-  z-index:1;
-}
-.session-table .cycle-row.active-row > div:nth-child(2) .active-indicator,
-.session-table .cycle-row.active-row > div:nth-child(3) .active-indicator{
-  display:block;
 }
 
 
