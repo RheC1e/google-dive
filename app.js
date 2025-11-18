@@ -701,7 +701,8 @@ function renderSessionTable() {
     if (isActiveCycle) row.classList.add('active-row');
     if (isActiveCycle) activeRowEl = row;
 
-    const added = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
+    const holdAdded = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
+    const breathAdded = session && session.breathAddedSeconds[i] ? ` + ${session.breathAddedSeconds[i]}` : '';
     const contractionMarker =
       session && session.contractions[i] != null
         ? `<div class="diag"> ${secToMMSS(session.contractions[i])}</div>`
@@ -715,14 +716,14 @@ function renderSessionTable() {
       <div class="time-cell ${isHoldPhase ? 'active-phase' : ''}">
         <div class="main">
           ${holdIndicator}
-          <span>${secToMMSS(c.hold)}${added}</span>
+          <span>${secToMMSS(c.hold)}${holdAdded}</span>
         </div>
         ${contractionMarker}
       </div>
       <div class="time-cell ${isBreathPhase ? 'active-phase' : ''}">
         <div class="main">
           ${breathIndicator}
-          <span>${secToMMSS(c.breath)}</span>
+          <span>${secToMMSS(c.breath)}${breathAdded}</span>
         </div>
       </div>
       <div></div>
@@ -786,14 +787,20 @@ function adjustRemaining(sec) {
     state.session.prepareAddedSeconds = (state.session.prepareAddedSeconds || 0) + sec;
   } else if (state.session.phase === 'hold') {
     const i = state.session.index;
-    state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + sec;
+    if (i >= 0) {
+      state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + sec;
+    }
   } else if (state.session.phase === 'breath') {
     const i = state.session.index;
-    state.session.breathAddedSeconds[i] = (state.session.breathAddedSeconds[i] || 0) + sec;
+    if (i >= 0) {
+      state.session.breathAddedSeconds[i] = (state.session.breathAddedSeconds[i] || 0) + sec;
+    }
   }
-  // 立即更新計時器顯示，讓進度條正確顯示
+  // 立即更新計時器顯示和TABLE，讓進度條和TABLE都正確顯示
   state.session.lastTick = performance.now();
-  // 強制更新一次tick來立即顯示
+  // 更新TABLE顯示
+  updateHomeUI();
+  // 強制更新一次tick來立即顯示計時器
   tick();
 }
 function markDiaphragm() {
