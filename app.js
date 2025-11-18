@@ -617,9 +617,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
-    // 確保所有placeholder都被清理
-    const allPlaceholders = wrap.querySelectorAll('.row-placeholder');
-    allPlaceholders.forEach(p => p.remove());
+    // 再次確保所有placeholder都被清理（使用已存在的變量）
+    const remainingPlaceholders = wrap.querySelectorAll('.row-placeholder');
+    remainingPlaceholders.forEach(p => p.remove());
     
     // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
