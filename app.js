@@ -91,7 +91,9 @@ function adjustSessionTableHeight() {
     return;
   }
   const fixedRect = fixed.getBoundingClientRect();
-  const available = Math.max(200, window.innerHeight - fixedRect.bottom - 24);
+  // 計算可用高度：確保至少能顯示4行（每行約56px，加上header約60px，總共約280px）
+  const minHeight = 280;
+  const available = Math.max(minHeight, window.innerHeight - fixedRect.bottom - 12);
   wrap.style.maxHeight = `${available}px`;
   wrap.style.overflowY = 'auto';
   wrap.style.webkitOverflowScrolling = 'touch';
@@ -567,6 +569,11 @@ function delegatedClickHandler(e) {
 }
 
 function openPicker() {
+  // 如果正在運行循環，不允許選擇TABLE
+  if (state.session) {
+    alert('請先停止當前循環');
+    return;
+  }
   // 若已有打開中的彈窗，先清掉避免疊加
   $$('.modal-backdrop').forEach((el) => el.remove());
   const tpl = $('#tpl-picker').content ? $('#tpl-picker').content : null;
@@ -612,24 +619,46 @@ function openPicker() {
 
 function updateHomeUI() {
   const t = state.data.tables.find((x) => x.id === state.currentTableId);
-  $('#pickTableBtn').textContent = t ? `${t.name} ▾` : '選擇 Table ▾';
+  const pickTableBtn = $('#pickTableBtn');
   const lung = $('#markDiaphragmBtn');
   const running = !!state.session;
   const pauseBtn = $('#pauseBtn');
   const skipBtn = $('#skipBtn');
   const paused = running && state.session.paused;
+  
+  // 鎖定選擇TABLE按鈕（如果正在運行）
+  if (running) {
+    pickTableBtn.classList.add('disabled');
+    pickTableBtn.disabled = true;
+    pickTableBtn.title = '請先停止當前循環';
+  } else {
+    pickTableBtn.classList.remove('disabled');
+    pickTableBtn.disabled = false;
+    pickTableBtn.title = '';
+    pickTableBtn.textContent = t ? `${t.name} ▾` : '選擇 Table ▾';
+  }
+  
   if (!running) {
     $('#runningControls').hidden = true;
     lung.classList.add('disabled');
     lung.disabled = true;
-    if (skipBtn) skipBtn.disabled = true;
+    if (skipBtn) {
+      skipBtn.disabled = true;
+      skipBtn.classList.add('disabled');
+    }
     if (pauseBtn) pauseBtn.textContent = '⏸';
   } else {
     $('#runningControls').hidden = false;
-    const holdActive = state.session.phase === 'hold' && !paused;
+    // 檢查是否已經按過肺部按鈕
+    const alreadyMarked = state.session.phase === 'hold' && state.session.contractions[state.session.index] != null;
+    const holdActive = state.session.phase === 'hold' && !paused && !alreadyMarked;
     lung.classList.toggle('disabled', !holdActive);
     lung.disabled = !holdActive;
-    if (skipBtn) skipBtn.disabled = paused;
+    // 暫停時禁用跳過按鈕和肺部按鈕
+    if (skipBtn) {
+      skipBtn.disabled = paused;
+      skipBtn.classList.toggle('disabled', paused);
+    }
     if (pauseBtn) {
       pauseBtn.textContent = state.session.paused ? '▶' : '⏸';
       pauseBtn.title = state.session.paused ? '繼續' : '暫停';
@@ -711,6 +740,7 @@ function startSession() {
     holdStartSec: null,
     addedSeconds: {}, // cycleIndex -> added seconds total (hold)
     breathAddedSeconds: {}, // cycleIndex -> added seconds total (breath)
+    contractionTime: null, // timestamp when contraction was marked
   };
   $('#startBtn').disabled = true;
   tick();
@@ -738,6 +768,8 @@ function stopSession() {
 }
 function adjustRemaining(sec) {
   if (!state.session) return;
+  // 記錄調整前的狀態，用於重新計算progress
+  const beforeRemaining = state.session.phaseRemaining;
   state.session.phaseRemaining += sec;
   if (state.session.phase === 'hold') {
     const i = state.session.index;
@@ -746,22 +778,27 @@ function adjustRemaining(sec) {
     const i = state.session.index;
     state.session.breathAddedSeconds[i] = (state.session.breathAddedSeconds[i] || 0) + sec;
   }
+  // 立即更新UI，讓進度條正確顯示
   updateHomeUI();
 }
 function markDiaphragm() {
-  if (!state.session || state.session.phase !== 'hold') return;
+  if (!state.session || state.session.phase !== 'hold' || state.session.paused) return;
   const i = state.session.index;
   if (state.session.contractions[i] != null) return;
   const added = state.session.addedSeconds[i] || 0;
   const totalPlanned = state.session.holdPlanned + added;
   const elapsed = totalPlanned - state.session.phaseRemaining;
   state.session.contractions[i] = Math.max(0, Math.round(elapsed));
+  // 記錄按下時的時間點，用於改變顏色
+  state.session.contractionTime = performance.now();
   updateHomeUI();
 }
 
 function nextPhase() {
   const t = state.data.tables.find((x) => x.id === state.session.tableId);
   if (!t) return stopSession();
+  // 清除contractionTime，因為進入新階段
+  state.session.contractionTime = null;
   if (state.session.phase === 'prepare') {
     state.session.index = 0;
     state.session.phase = 'hold';
@@ -781,6 +818,8 @@ function nextPhase() {
     state.session.phase = 'hold';
     state.session.holdPlanned = t.cycles[nextIdx].hold;
     state.session.phaseRemaining = t.cycles[nextIdx].hold;
+    // 清除新循環的contractionTime，讓肺部按鈕可以再次使用
+    state.session.contractionTime = null;
   }
   updateHomeUI();
 }
@@ -812,15 +851,32 @@ function tick(now = performance.now()) {
       : table && table.cycles[s.index]
       ? table.cycles[s.index].breath + breathAdded
       : 0;
-  const progress = planned > 0 ? Math.max(0, Math.min(1, 1 - s.phaseRemaining / planned)) : 0;
+  // 計算progress：基於當前剩餘時間和總計劃時間
+  // 如果phaseRemaining超過planned（例如按了+10秒），progress應該基於原始planned時間計算
+  // 這樣即使超過原始時間，進度條也會繼續顯示
+  let progress = 0;
+  if (planned > 0) {
+    if (s.phaseRemaining <= planned) {
+      // 正常情況：剩餘時間在計劃時間內
+      progress = Math.max(0, Math.min(1, 1 - s.phaseRemaining / planned));
+    } else {
+      // 超過計劃時間：進度條應該顯示為已完成（100%），但繼續倒數
+      progress = 1;
+    }
+  }
   const color =
     s.phase === 'prepare' ? '#3b82f6' : s.phase === 'hold' ? '#ef5350' : '#26a69a';
   let markFraction = null;
-  if (s.phase === 'hold') {
-    const contraction = s.contractions[s.index];
+  if (s.phase === 'hold' && s.contractionTime != null) {
+    // 如果有記錄contraction時間，計算從按下那一刻到現在的進度
     const totalHold = s.holdPlanned + holdAdded;
-    if (contraction != null && totalHold > 0) {
-      markFraction = Math.max(0, Math.min(1, contraction / totalHold));
+    if (totalHold > 0) {
+      // 計算按下時已經過去的時間比例
+      const contraction = s.contractions[s.index];
+      if (contraction != null) {
+        // 使用記錄的contraction時間來計算比例
+        markFraction = Math.max(0, Math.min(1, contraction / totalHold));
+      }
     }
   }
   drawRing(progress, color, '#3a4152', markFraction);
@@ -850,20 +906,34 @@ function drawRing(progress, color, bg, markFraction = null) {
   const clampedMark = hasMark ? Math.max(0, Math.min(1, markFraction)) : null;
   ctx.lineWidth = 18;
   if (progress <= 0) return;
-  if (clampedMark != null && progress > clampedMark) {
+  // 確保progress不超過1（圓圈最多100%）
+  const clampedProgress = Math.min(1, progress);
+  const actualEnd = start + tau * clampedProgress;
+  
+  // 如果有標記點，且標記點在進度範圍內，則分段繪製
+  if (clampedMark != null && clampedMark > 0 && clampedMark <= clampedProgress) {
     const splitAngle = start + tau * clampedMark;
+    // 第一部分：從開始到標記點（原始顏色）
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, r, start, splitAngle);
     ctx.stroke();
+    // 第二部分：從標記點到當前進度（黃色）
     ctx.strokeStyle = '#ffca28';
     ctx.beginPath();
-    ctx.arc(cx, cy, r, splitAngle, end);
+    ctx.arc(cx, cy, r, splitAngle, actualEnd);
     ctx.stroke();
-  } else {
+  } else if (clampedMark != null && clampedMark > 0 && clampedMark > clampedProgress) {
+    // 標記點在進度之後，只繪製到標記點之前的原始顏色
     ctx.strokeStyle = color;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, start, end);
+    ctx.arc(cx, cy, r, start, actualEnd);
+    ctx.stroke();
+  } else {
+    // 沒有標記點，只繪製原始顏色
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, actualEnd);
     ctx.stroke();
   }
 }
