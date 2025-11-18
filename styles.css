@@ -180,6 +180,7 @@ body{
 .corner-btn{
   position:absolute;
   --corner-translate: translate(0,0);
+  --corner-offset:14px;
   width:78px;
   height:78px;
   border:none;
@@ -206,24 +207,24 @@ body{
 .corner-btn.lung{background:#ffb74d;color:#000;}
 #plus10Btn{background:#4a5568;font-size:13px;font-weight:600;}
 .corner-btn.corner-top-left{
-  top:0;
-  left:0;
-  --corner-translate:translate(-45%,-45%);
+  top:var(--corner-offset);
+  left:var(--corner-offset);
+  --corner-translate:translate(-40%,-40%);
 }
 .corner-btn.corner-top-right{
-  top:0;
-  right:0;
-  --corner-translate:translate(45%,-45%);
+  top:var(--corner-offset);
+  right:var(--corner-offset);
+  --corner-translate:translate(40%,-40%);
 }
 .corner-btn.corner-bottom-right{
-  bottom:0;
-  right:0;
-  --corner-translate:translate(45%,45%);
+  bottom:var(--corner-offset);
+  right:var(--corner-offset);
+  --corner-translate:translate(40%,40%);
 }
 .corner-btn.corner-bottom-left{
-  bottom:0;
-  left:0;
-  --corner-translate:translate(-45%,45%);
+  bottom:var(--corner-offset);
+  left:var(--corner-offset);
+  --corner-translate:translate(-40%,40%);
 }
 .corner-btn .corner-label{
   display:flex;
@@ -247,19 +248,20 @@ body{
     width:60px;
     height:60px;
     font-size:15px;
+    --corner-offset:8px;
   }
   #plus10Btn{font-size:11px;}
   .corner-btn.corner-top-left{
-    --corner-translate:translate(-35%,-35%);
+    --corner-translate:translate(-30%,-30%);
   }
   .corner-btn.corner-top-right{
-    --corner-translate:translate(35%,-35%);
+    --corner-translate:translate(30%,-30%);
   }
   .corner-btn.corner-bottom-right{
-    --corner-translate:translate(35%,35%);
+    --corner-translate:translate(30%,30%);
   }
   .corner-btn.corner-bottom-left{
-    --corner-translate:translate(-35%,35%);
+    --corner-translate:translate(-30%,30%);
   }
 }
 .home .controls.primary{
