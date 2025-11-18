@@ -143,7 +143,7 @@ body{
 @media (max-width:768px){
   .timer-wrapper{
     margin:1px 0;
-    width:min(70vw,180px);
+    width:min(65vw,160px);
   }
 }
 .home .timer{
@@ -243,6 +243,7 @@ body{
   font-size:36px;
   font-weight:700;
   background:transparent;
+  transform:translateY(-2px);
 }
 #plus10Btn .corner-label{font-size:24px;font-weight:700;}
 .corner-btn.disabled{
@@ -252,28 +253,29 @@ body{
 }
 @media (max-width:768px){
   .corner-btn{
-    width:60px;
-    height:60px;
+    width:56px;
+    height:56px;
     font-size:15px;
-    --corner-offset:8px;
-    --corner-top-offset:50px;
+    --corner-offset:12px;
+    --corner-top-offset:45px;
   }
   #plus10Btn{font-size:11px;}
   .corner-btn .corner-label{
-    font-size:28px;
+    font-size:26px;
+    transform:translateY(-1px);
   }
-  #plus10Btn .corner-label{font-size:18px;font-weight:700;}
+  #plus10Btn .corner-label{font-size:16px;font-weight:700;transform:translateY(0);}
   .corner-btn.corner-top-left{
-    --corner-translate:translate(-70%,-70%);
+    --corner-translate:translate(-65%,-65%);
   }
   .corner-btn.corner-top-right{
-    --corner-translate:translate(70%,-70%);
+    --corner-translate:translate(65%,-65%);
   }
   .corner-btn.corner-bottom-right{
-    --corner-translate:translate(45%,45%);
+    --corner-translate:translate(50%,50%);
   }
   .corner-btn.corner-bottom-left{
-    --corner-translate:translate(-45%,45%);
+    --corner-translate:translate(-50%,50%);
   }
 }
 .home .controls.primary{
