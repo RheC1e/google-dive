@@ -538,8 +538,7 @@ function renderHome() {
   view.innerHTML = $('#tpl-home').innerHTML;
   const pickBtn = $('#pickTableBtn');
   if (pickBtn) pickBtn.addEventListener('click', openPicker);
-  $('#startBtn').addEventListener('click', startSession);
-  $('#pauseBtn').addEventListener('click', togglePause);
+  $('#pauseBtn').addEventListener('click', togglePauseOrStart);
   $('#skipBtn').addEventListener('click', skipPhase);
   $('#plus10Btn').addEventListener('click', () => adjustRemaining(10));
   $('#stopBtn').addEventListener('click', stopSession);
@@ -547,6 +546,16 @@ function renderHome() {
   drawRing(0, '#2a2f3b', '#3a4152');
   updateHomeUI();
   adjustSessionTableHeight();
+}
+
+function togglePauseOrStart() {
+  if (!state.session) {
+    // 如果沒有session，點擊開始新的session
+    startSession();
+  } else {
+    // 如果有session，切換暫停/繼續
+    togglePause();
+  }
 }
 
 // 補救性事件委派：避免偶發沒掛到事件時，仍可操作
@@ -639,14 +648,17 @@ function updateHomeUI() {
   }
   
   if (!running) {
-    $('#runningControls').hidden = true;
+    $('#runningControls').hidden = false;
     lung.classList.add('disabled');
     lung.disabled = true;
     if (skipBtn) {
       skipBtn.disabled = true;
       skipBtn.classList.add('disabled');
     }
-    if (pauseBtn) pauseBtn.textContent = '⏸';
+    if (pauseBtn) {
+      pauseBtn.textContent = '▶';
+      pauseBtn.title = '開始';
+    }
   } else {
     $('#runningControls').hidden = false;
     // 檢查是否已經按過肺部按鈕
@@ -654,10 +666,10 @@ function updateHomeUI() {
     const holdActive = state.session.phase === 'hold' && !paused && !alreadyMarked;
     lung.classList.toggle('disabled', !holdActive);
     lung.disabled = !holdActive;
-    // 暫停時禁用跳過按鈕和肺部按鈕
+    // 暫停時不禁用跳過和+10s按鈕，只禁用肺部按鈕
     if (skipBtn) {
-      skipBtn.disabled = paused;
-      skipBtn.classList.toggle('disabled', paused);
+      skipBtn.disabled = false;
+      skipBtn.classList.remove('disabled');
     }
     if (pauseBtn) {
       pauseBtn.textContent = state.session.paused ? '▶' : '⏸';
@@ -741,8 +753,8 @@ function startSession() {
     addedSeconds: {}, // cycleIndex -> added seconds total (hold)
     breathAddedSeconds: {}, // cycleIndex -> added seconds total (breath)
     contractionTime: null, // timestamp when contraction was marked
+    prepareAddedSeconds: 0, // prepare階段添加的秒數
   };
-  $('#startBtn').disabled = true;
   tick();
   updateHomeUI();
 }
@@ -756,11 +768,12 @@ function togglePause() {
 function skipPhase() {
   if (!state.session) return;
   nextPhase();
+  // 立即更新計時器顯示（nextPhase已經調用updateHomeUI，會觸發renderSessionTable）
+  // tick()會自動繼續運行，不需要手動調用
 }
 function stopSession() {
   cancelAnimationFrame(rafId);
   state.session = null;
-  $('#startBtn').disabled = false;
   drawRing(0, '#2a2f3b', '#3a4152');
   $('#timeText').textContent = '00:00';
   $('#phaseText').textContent = 'Prepare';
@@ -768,18 +781,20 @@ function stopSession() {
 }
 function adjustRemaining(sec) {
   if (!state.session) return;
-  // 記錄調整前的狀態，用於重新計算progress
-  const beforeRemaining = state.session.phaseRemaining;
   state.session.phaseRemaining += sec;
-  if (state.session.phase === 'hold') {
+  if (state.session.phase === 'prepare') {
+    state.session.prepareAddedSeconds = (state.session.prepareAddedSeconds || 0) + sec;
+  } else if (state.session.phase === 'hold') {
     const i = state.session.index;
     state.session.addedSeconds[i] = (state.session.addedSeconds[i] || 0) + sec;
   } else if (state.session.phase === 'breath') {
     const i = state.session.index;
     state.session.breathAddedSeconds[i] = (state.session.breathAddedSeconds[i] || 0) + sec;
   }
-  // 立即更新UI，讓進度條正確顯示
-  updateHomeUI();
+  // 立即更新計時器顯示，讓進度條正確顯示
+  state.session.lastTick = performance.now();
+  // 強制更新一次tick來立即顯示
+  tick();
 }
 function markDiaphragm() {
   if (!state.session || state.session.phase !== 'hold' || state.session.paused) return;
@@ -805,6 +820,8 @@ function nextPhase() {
     state.session.holdPlanned = t.cycles[0].hold;
     state.session.phaseRemaining = t.cycles[0].hold;
     state.session.holdStartSec = t.cycles[0].hold;
+    // 清除prepare的添加秒數
+    state.session.prepareAddedSeconds = 0;
   } else if (state.session.phase === 'hold') {
     state.session.phase = 'breath';
     state.session.phaseRemaining = t.cycles[state.session.index].breath;
@@ -843,17 +860,16 @@ function tick(now = performance.now()) {
   const table = state.data.tables.find((x) => x.id === s.tableId);
   const holdAdded = s.phase === 'hold' ? (s.addedSeconds[s.index] || 0) : 0;
   const breathAdded = s.phase === 'breath' ? (s.breathAddedSeconds[s.index] || 0) : 0;
+  const prepareAdded = s.phase === 'prepare' ? (s.prepareAddedSeconds || 0) : 0;
   const planned =
     s.phase === 'prepare'
-      ? 10
+      ? 10 + prepareAdded
       : s.phase === 'hold'
       ? s.holdPlanned + holdAdded
       : table && table.cycles[s.index]
       ? table.cycles[s.index].breath + breathAdded
       : 0;
-  // 計算progress：基於當前剩餘時間和總計劃時間
-  // 如果phaseRemaining超過planned（例如按了+10秒），progress應該基於原始planned時間計算
-  // 這樣即使超過原始時間，進度條也會繼續顯示
+  // 計算progress：基於當前剩餘時間和總計劃時間（包括添加的秒數）
   let progress = 0;
   if (planned > 0) {
     if (s.phaseRemaining <= planned) {

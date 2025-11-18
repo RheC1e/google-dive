@@ -201,6 +201,14 @@ body{
   font-weight:600;
   text-align:center;
   padding:0;
+  background:#4a5568 !important;
+  color:#fff !important;
+}
+#plus10Btn:hover{
+  background:#5a6578 !important;
+}
+#plus10Btn:active{
+  background:#3a4558 !important;
 }
 .ctrl.disabled{
   opacity:.4;
