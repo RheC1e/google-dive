@@ -101,17 +101,29 @@ function adjustSessionTableHeight() {
 
 function scrollRowIntoView(row) {
   const wrap = $('#sessionTableWrap');
-  if (!wrap) return;
+  if (!wrap || !row) return;
+  // 確保wrap是可滾動的
   const overflow = getComputedStyle(wrap).overflowY;
   if (overflow !== 'auto' && overflow !== 'scroll') return;
-  const rowTop = row.offsetTop;
-  const rowBottom = rowTop + row.offsetHeight;
-  const viewTop = wrap.scrollTop;
-  const viewBottom = viewTop + wrap.clientHeight;
-  if (rowTop < viewTop || rowBottom > viewBottom) {
-    const target = rowTop - wrap.clientHeight / 2 + row.offsetHeight / 2;
-    wrap.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-  }
+  
+  // 使用setTimeout確保DOM已更新
+  setTimeout(() => {
+    const rowTop = row.offsetTop;
+    const rowHeight = row.offsetHeight;
+    const wrapHeight = wrap.clientHeight;
+    const wrapScrollTop = wrap.scrollTop;
+    
+    // 計算目標位置：讓row顯示在wrap的頂部
+    const targetScrollTop = rowTop - wrap.offsetTop;
+    
+    // 如果row不在可見區域，則滾動
+    if (targetScrollTop < wrapScrollTop || targetScrollTop + rowHeight > wrapScrollTop + wrapHeight) {
+      wrap.scrollTo({ 
+        top: Math.max(0, targetScrollTop - 8), // 留一點間距
+        behavior: 'smooth' 
+      });
+    }
+  }, 50);
 }
 
 window.addEventListener('resize', adjustSessionTableHeight);
@@ -253,6 +265,8 @@ function doSaveAndExit() {
 function renderCycleList() {
   const { table, reorderMode } = state.editing;
   const wrap = $('#cycleList');
+  // 清理所有placeholder（防止殘留）
+  wrap.querySelectorAll('.row-placeholder').forEach(p => p.remove());
   wrap.innerHTML = '';
   wrap.classList.toggle('reorder-mode', !!reorderMode);
   const beforeRects = getRects(wrap);
@@ -405,6 +419,10 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     startEvent.stopPropagation();
   }
   
+  // 清理可能存在的舊placeholder
+  const existingPlaceholders = wrap.querySelectorAll('.row-placeholder');
+  existingPlaceholders.forEach(p => p.remove());
+  
   const rowHeight = row.offsetHeight;
   const startTop = row.offsetTop;
   const wrapRect = wrap.getBoundingClientRect();
@@ -453,21 +471,38 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     const clientY = getClientY(e);
     const y = clientY - wrapRect.top - grabOffset;
     row.style.top = `${y}px`;
-    // 計算應插入 index：看滑過的中心
-    const siblings = Array.from(wrap.children).filter((el) => el !== row && el !== placeholder);
-    let target = siblings.length;
-    for (let i = 0; i < siblings.length; i++) {
-      const el = siblings[i];
+    
+    // 獲取所有cycle-row（不包括當前拖曳的row和placeholder）
+    const allChildren = Array.from(wrap.children);
+    const allRows = allChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
+    
+    // 找到目標插入位置
+    let targetRow = null;
+    for (let i = 0; i < allRows.length; i++) {
+      const el = allRows[i];
       const rect = el.getBoundingClientRect();
       const center = rect.top + rect.height / 2;
-      if (clientY < center) { target = i; break; }
+      if (clientY < center) {
+        targetRow = el;
+        break;
+      }
     }
-    const currentPlaceholderIndex = siblings.indexOf(placeholder);
-    if (target !== currentPlaceholderIndex) {
-      if (target >= siblings.length) {
-        wrap.appendChild(placeholder);
-      } else {
-        wrap.insertBefore(placeholder, siblings[target]);
+    
+    // 移動placeholder到正確位置
+    if (targetRow) {
+      // 插入到targetRow之前
+      if (targetRow.previousSibling !== placeholder) {
+        wrap.insertBefore(placeholder, targetRow);
+      }
+    } else {
+      // 插入到最後
+      const lastRow = allRows[allRows.length - 1];
+      if (lastRow) {
+        if (lastRow.nextSibling !== placeholder) {
+          wrap.insertBefore(placeholder, lastRow.nextSibling);
+        }
+      } else if (wrap.firstChild !== placeholder) {
+        wrap.insertBefore(placeholder, wrap.firstChild);
       }
     }
   }
@@ -488,9 +523,22 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.preventDefault();
       e.stopPropagation();
     }
+    
+    // 清理所有placeholder（防止多餘的）
+    const allPlaceholders = wrap.querySelectorAll('.row-placeholder');
+    allPlaceholders.forEach(p => {
+      if (p !== placeholder) p.remove();
+    });
+    
     // 將 row 放回 placeholder 位置
-    wrap.insertBefore(row, placeholder);
-    placeholder.remove();
+    if (placeholder.parentNode === wrap) {
+      wrap.insertBefore(row, placeholder);
+      placeholder.remove();
+    } else {
+      // 如果placeholder已經被移除，插入到最後
+      wrap.appendChild(row);
+    }
+    
     row.classList.remove('dragging');
     row.style.position = '';
     row.style.left = '';
@@ -511,7 +559,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
-    // 依據目前 DOM 順序重排資料
+    // 依據目前 DOM 順序重排資料（只考慮cycle-row）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
     const map = new Map(table.cycles.map((c) => [c._k, c]));
     table.cycles = keys.map((k) => map.get(k));
@@ -731,7 +779,13 @@ function renderSessionTable() {
     wrap.appendChild(row);
   });
   adjustSessionTableHeight();
-  if (activeRowEl) scrollRowIntoView(activeRowEl);
+  // 如果有活動行，自動滾動到該行
+  if (activeRowEl) {
+    // 使用requestAnimationFrame確保DOM已完全渲染
+    requestAnimationFrame(() => {
+      scrollRowIntoView(activeRowEl);
+    });
+  }
 }
 
 // Session handling

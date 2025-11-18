@@ -13,13 +13,15 @@
 *{box-sizing:border-box}
 html,body{
   height:100%;
-  min-height:100%;
   width:100%;
+  overflow:hidden;
+  position:fixed;
 }
 #app{
-  min-height:100vh;
+  height:100vh;
   display:flex;
   flex-direction:column;
+  overflow:hidden;
   position:relative;
 }
 body{
@@ -28,7 +30,6 @@ body{
   color:var(--text);
   font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,PingFang TC,Microsoft JhengHei,sans-serif;
   -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
 }
 .app-bar{
   display:flex; align-items:center; gap:12px;
@@ -78,12 +79,14 @@ body{
 .card .meta{margin-top:6px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:6px}
 .home{
   position:relative;
-  min-height:calc(100vh - 56px);
-  padding:8px 0 24px 0;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:8px 0 0 0;
 }
 .home-fixed{
-  position:sticky;
-  top:56px;
+  flex-shrink:0;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -100,25 +103,19 @@ body{
   }
 }
 .home .timer-header{
-  flex-shrink:0;
-  padding:4px 0;
-}
-@media (max-width:768px){
-  .home .timer-header{
-    padding:2px 0;
-  }
+  display:none;
 }
 .home .timer{
   position:relative;
   display:flex;
   justify-content:center;
-  margin:4px 0 2px;
+  margin:2px 0;
   width:min(92vw,280px);
 }
 @media (max-width:768px){
   .home .timer{
-    margin:2px 0;
-    width:min(85vw,240px);
+    margin:1px 0;
+    width:min(70vw,180px);
   }
 }
 .home .timer canvas{
@@ -129,46 +126,76 @@ body{
   flex-shrink:0;
   margin-top:2px;
   gap:6px;
+  width:100%;
+  max-width:640px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
 }
 @media (max-width:768px){
   .home .controls.primary{
     margin-top:0;
     gap:4px;
+    flex-wrap:nowrap;
+    justify-content:space-between;
+    padding:0 8px;
   }
   .home .controls.primary .btn{
     padding:6px 8px;
     font-size:14px;
+    flex:1;
+    min-width:0;
   }
   .home .controls.primary .fab.lung{
     width:36px;
     height:36px;
     font-size:18px;
+    flex-shrink:0;
   }
 }
 .home .controls.secondary{
   flex-shrink:0;
   margin-top:2px;
   gap:6px;
+  width:100%;
+  max-width:640px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 @media (max-width:768px){
   .home .controls.secondary{
     margin-top:0;
-    gap:4px;
+    gap:3px;
+    position:absolute;
+    top:60px;
+    right:8px;
+    width:auto;
+    max-width:none;
+    flex-direction:row;
+    z-index:3;
   }
   .home .controls.secondary .ctrl{
-    width:40px;
-    height:40px;
-    font-size:14px;
+    width:32px;
+    height:32px;
+    font-size:11px;
+    padding:0;
   }
 }
 .session-table{
-  margin-top:12px;
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  margin-top:8px;
   border-top:1px solid var(--line);
   width:100%;
   max-width:640px;
   margin-left:auto;
   margin-right:auto;
   padding:0;
+  -webkit-overflow-scrolling:touch;
+  min-height:0;
 }
 .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .time{font-size:44px;font-weight:800}
