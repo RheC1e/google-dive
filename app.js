@@ -147,58 +147,29 @@ window.addEventListener('resize', adjustSessionTableHeight);
 window.addEventListener('orientationchange', adjustSessionTableHeight);
 
 // Navigation & Drawer
-let view, drawer;
-
-function initApp() {
-  view = $('#view');
-  drawer = $('#drawer');
-  
-  if (!view) {
-    console.error('View element not found!');
-    document.body.innerHTML = '<div style="padding:20px;color:red;">Error: View element not found!</div>';
-    return;
-  }
-  
-  $('#menuBtn')?.addEventListener('click', () => {
-    drawer?.classList.toggle('open');
+const view = $('#view');
+const drawer = $('#drawer');
+$('#menuBtn').addEventListener('click', () => {
+  drawer.classList.toggle('open');
+});
+$$('.drawer-item').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const r = btn.getAttribute('data-route');
+    navigate(r);
+    drawer.classList.remove('open');
   });
-  
-  $$('.drawer-item').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const r = btn.getAttribute('data-route');
-      navigate(r);
-      drawer?.classList.remove('open');
-    });
-  });
-  
-  // Initial route
-  navigate('home');
-}
+});
 
 function navigate(route) {
-  if (!view) {
-    console.error('View not initialized!');
-    return;
-  }
-  
   state.route = route;
-  try {
-    if (route === 'home') renderHome();
-    if (route === 'tables') renderTables();
-    // 安全保險：若因任何原因事件未綁定，這裡補一層委派
-    attachCommonHandlers();
-  } catch (error) {
-    console.error('Navigation error:', error);
-    view.innerHTML = `<div style="padding:20px;color:red;">Error: ${error.message}<br><pre>${error.stack}</pre></div>`;
-  }
+  if (route === 'home') renderHome();
+  if (route === 'tables') renderTables();
+  // 安全保險：若因任何原因事件未綁定，這裡補一層委派
+  attachCommonHandlers();
 }
 
-// 確保DOM已加載
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
+// Initial route
+navigate('home');
 
 // ---------- Render: Tables List ----------
 function renderTables() {
@@ -689,57 +660,6 @@ function renderHome() {
   updateHomeUI();
   adjustSessionTableHeight();
   
-  // 防止整頁滾動：只在TABLE區域允許滾動
-  if (window.innerWidth <= 768) {
-    const sessionTable = $('#sessionTableWrap');
-    const homeFixed = $('.home-fixed');
-    
-    // 防止在非TABLE區域的touchmove觸發整頁滾動
-    const preventPageScroll = (e) => {
-      const target = e.target;
-      // 如果是按鈕或其他可交互元素，允許操作
-      if (target.tagName === 'BUTTON' || 
-          target.tagName === 'INPUT' || 
-          target.tagName === 'A' ||
-          target.closest('button') ||
-          target.closest('input') ||
-          target.closest('a')) {
-        return; // 允許按鈕和輸入框的操作
-      }
-      
-      // 如果觸摸點在TABLE區域內，允許滾動
-      if (sessionTable.contains(target)) {
-        return; // TABLE區域允許滾動
-      }
-      
-      // 如果觸摸點在固定區域（按鈕區域），允許操作
-      if (homeFixed.contains(target)) {
-        return; // 固定區域允許操作
-      }
-      
-      // 檢查是否在可滾動容器內
-      let scrollable = target;
-      while (scrollable && scrollable !== document.body) {
-        const style = getComputedStyle(scrollable);
-        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-            scrollable.scrollHeight > scrollable.clientHeight) {
-          return; // 在可滾動容器內，允許滾動
-        }
-        scrollable = scrollable.parentElement;
-      }
-      
-      // 不在可滾動容器內，且不是可交互元素，阻止滾動
-      // 但只在確實是滾動手勢時才阻止
-      if (e.touches && e.touches.length === 1) {
-        e.preventDefault();
-      }
-    };
-    
-    // 移除舊的監聽器（如果存在）
-    document.removeEventListener('touchmove', preventPageScroll, { passive: false });
-    // 添加新的監聽器
-    document.addEventListener('touchmove', preventPageScroll, { passive: false });
-  }
 }
 
 function togglePauseOrStart() {

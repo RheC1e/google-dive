@@ -74,9 +74,7 @@ body{
   padding:10px 12px 24px 12px;
   flex:1;
   display:block;
-  overflow:hidden;
-  min-height:0;
-  position:relative;
+  min-height:calc(100vh - 56px);
 }
 .card-list{
   flex:1;
