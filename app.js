@@ -147,29 +147,58 @@ window.addEventListener('resize', adjustSessionTableHeight);
 window.addEventListener('orientationchange', adjustSessionTableHeight);
 
 // Navigation & Drawer
-const view = $('#view');
-const drawer = $('#drawer');
-$('#menuBtn').addEventListener('click', () => {
-  drawer.classList.toggle('open');
-});
-$$('.drawer-item').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const r = btn.getAttribute('data-route');
-    navigate(r);
-    drawer.classList.remove('open');
-  });
-});
+let view, drawer;
 
-function navigate(route) {
-  state.route = route;
-  if (route === 'home') renderHome();
-  if (route === 'tables') renderTables();
-  // 安全保險：若因任何原因事件未綁定，這裡補一層委派
-  attachCommonHandlers();
+function initApp() {
+  view = $('#view');
+  drawer = $('#drawer');
+  
+  if (!view) {
+    console.error('View element not found!');
+    document.body.innerHTML = '<div style="padding:20px;color:red;">Error: View element not found!</div>';
+    return;
+  }
+  
+  $('#menuBtn')?.addEventListener('click', () => {
+    drawer?.classList.toggle('open');
+  });
+  
+  $$('.drawer-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const r = btn.getAttribute('data-route');
+      navigate(r);
+      drawer?.classList.remove('open');
+    });
+  });
+  
+  // Initial route
+  navigate('home');
 }
 
-// Initial route
-navigate('home');
+function navigate(route) {
+  if (!view) {
+    console.error('View not initialized!');
+    return;
+  }
+  
+  state.route = route;
+  try {
+    if (route === 'home') renderHome();
+    if (route === 'tables') renderTables();
+    // 安全保險：若因任何原因事件未綁定，這裡補一層委派
+    attachCommonHandlers();
+  } catch (error) {
+    console.error('Navigation error:', error);
+    view.innerHTML = `<div style="padding:20px;color:red;">Error: ${error.message}<br><pre>${error.stack}</pre></div>`;
+  }
+}
+
+// 確保DOM已加載
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // ---------- Render: Tables List ----------
 function renderTables() {
