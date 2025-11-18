@@ -493,7 +493,6 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     startEvent.stopPropagation();
   }
 
-  // 確保 wrap 為定位容器
   wrap.style.position = wrap.style.position || 'relative';
 
   const wrapRect = wrap.getBoundingClientRect();
@@ -502,22 +501,26 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const initialTop = rowRect.top - wrapRect.top + wrap.scrollTop;
   const initialLeft = rowRect.left - wrapRect.left;
 
-  // 建立 placeholder
   const placeholder = document.createElement('div');
   placeholder.className = 'row-placeholder';
   placeholder.style.height = `${rowRect.height}px`;
   placeholder.style.width = `${rowRect.width}px`;
-  wrap.insertBefore(placeholder, row);
 
-  // 讓行跟手移動
-  row.classList.add('dragging');
-  row.style.position = 'absolute';
-  row.style.width = `${rowRect.width}px`;
-  row.style.left = `${initialLeft}px`;
-  row.style.top = `${initialTop}px`;
-  row.style.zIndex = '1000';
-  row.style.pointerEvents = 'none';
-  document.body.classList.add('dragging-global');
+  let dragActive = false;
+
+  function activateDrag() {
+    if (dragActive) return;
+    dragActive = true;
+    wrap.insertBefore(placeholder, row);
+    row.classList.add('dragging');
+    row.style.position = 'absolute';
+    row.style.width = `${rowRect.width}px`;
+    row.style.left = `${initialLeft}px`;
+    row.style.top = `${initialTop}px`;
+    row.style.zIndex = '1000';
+    row.style.pointerEvents = 'none';
+    document.body.classList.add('dragging-global');
+  }
 
   const getClientY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
 
@@ -536,6 +539,12 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   function onMove(e) {
     e.preventDefault();
     const clientY = getClientY(e);
+    if (!dragActive) {
+      const moved = Math.abs(clientY - startClientY);
+      if (moved < 4) return;
+      activateDrag();
+    }
+    if (!dragActive) return;
     const targetTop = clientY - wrapRect.top + wrap.scrollTop - grabOffset;
     row.style.top = `${targetTop}px`;
     movePlaceholder(targetTop + grabOffset);
@@ -556,9 +565,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.stopPropagation();
     }
     cleanup();
+    if (!dragActive) return;
     document.body.classList.remove('dragging-global');
 
-    // 將列放到 placeholder 位置
     wrap.insertBefore(row, placeholder);
     placeholder.remove();
 
@@ -570,7 +579,6 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     row.style.zIndex = '';
     row.style.pointerEvents = '';
 
-    // 依照 DOM 順序更新資料
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
     const map = new Map(table.cycles.map((c) => [c._k, c]));
     table.cycles = keys.map((k) => map.get(k));

@@ -534,6 +534,7 @@ body{
   background:rgba(255,255,255,.04);
   border:1px dashed rgba(255,255,255,.12);
   transition:background .2s ease;
+  pointer-events:none;
 }
 .dragging-global{user-select:none;cursor:grabbing;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;touch-action:none}
 .right{text-align:right;padding-right:6px}
