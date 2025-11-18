@@ -183,6 +183,39 @@ function navigate(route) {
 // Initial route
 navigate('home');
 
+// 防止雙擊縮放
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(event) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// 防止計時器區域的雙擊縮放
+const preventDoubleTapZoom = (element) => {
+  let lastTap = 0;
+  element.addEventListener('touchend', function(event) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTap;
+    if (tapLength < 300 && tapLength > 0) {
+      event.preventDefault();
+    }
+    lastTap = currentTime;
+  });
+};
+
+// 在renderHome時應用防止雙擊縮放
+const originalRenderHome = renderHome;
+renderHome = function() {
+  originalRenderHome();
+  const timerWrapper = $('.timer-wrapper');
+  if (timerWrapper) {
+    preventDoubleTapZoom(timerWrapper);
+  }
+};
+
 // ---------- Render: Tables List ----------
 function renderTables() {
   view.innerHTML = $('#tpl-tables').innerHTML;
@@ -233,7 +266,13 @@ function deepClone(obj) {
 function renderEditTable() {
   view.innerHTML = $('#tpl-edit-table').innerHTML;
   const { table, reorderMode } = state.editing;
-  $('#editTitle').textContent = (state.editing.originalId ? 'Edit table ' : 'New table ') + (table.name || '');
+  const titleEl = $('#editTitle');
+  const tableName = table.name || '';
+  if (tableName) {
+    titleEl.innerHTML = (state.editing.originalId ? 'Edit table <span class="table-name-highlight">' : 'New table <span class="table-name-highlight">') + tableName + '</span>';
+  } else {
+    titleEl.textContent = (state.editing.originalId ? 'Edit table ' : 'New table ') + tableName;
+  }
   const name = $('#tableNameInput');
   const desc = $('#tableDescInput');
   name.value = table.name || '';
@@ -306,7 +345,7 @@ function renderCycleList() {
     row.draggable = false;
     row.style.cursor = 'default';
     row.innerHTML = `
-      <div class="idx"></div>
+      <div class="idx">${i + 1}</div>
       <div><button class="btn" data-kind="hold">${secToMMSS(c.hold)}</button></div>
       <div><button class="btn" data-kind="breath">${secToMMSS(c.breath)}</button></div>
       <div class="right">
@@ -457,12 +496,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const wrapRect = wrap.getBoundingClientRect();
   const grabOffset = startClientY - row.getBoundingClientRect().top;
 
-  // 佔位元，避免 layout 抽掉高度
-  const placeholder = document.createElement('div');
-  placeholder.className = 'row-placeholder';
-  placeholder.style.height = `${rowHeight}px`;
-  wrap.insertBefore(placeholder, row.nextSibling);
-
+  // 記錄原始位置，用於維持布局
+  const originalNextSibling = row.nextSibling;
+  
   // 讓列跟手移動
   row.classList.add('dragging');
   row.style.position = 'absolute';
@@ -470,6 +506,18 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   row.style.left = '0';
   row.style.top = `${startTop}px`;
   row.style.zIndex = '5';
+  // 使用margin來維持原始空間，避免布局塌陷
+  const spacer = document.createElement('div');
+  spacer.className = 'row-spacer';
+  spacer.style.cssText = `
+    height: ${rowHeight}px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    visibility: hidden;
+    pointer-events: none;
+  `;
+  wrap.insertBefore(spacer, originalNextSibling);
   document.body.classList.add('dragging-global');
   
   // 禁用滾動和文字選取
@@ -524,54 +572,48 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       }
     }
     
-    // 只有當目標位置改變時才移動placeholder，防止頻繁DOM操作
+    // 只有當目標位置改變時才移動spacer，防止頻繁DOM操作
     if (targetIndex !== lastTargetIndex) {
       lastTargetIndex = targetIndex;
       
-      // 先移除placeholder（如果存在）
-      if (placeholder.parentNode === wrap) {
-        placeholder.remove();
-      }
-      
-      // 重新獲取所有rows（排除row和placeholder）
+      // 重新獲取所有rows（排除row和spacer）
       const currentChildren = Array.from(wrap.children);
       const currentRows = currentChildren.filter(el => 
         el.classList.contains('cycle-row') && 
-        el !== row && 
-        el !== placeholder &&
-        el.classList.contains('cycle-row') // 雙重檢查
+        el !== row
       );
       
-      // 移動placeholder到正確位置
+      // 移動spacer到正確位置（用於維持布局）
+      if (spacer.parentNode === wrap) {
+        spacer.remove();
+      }
+      
       if (targetIndex < currentRows.length && currentRows.length > 0) {
         const targetRow = currentRows[targetIndex];
-        // 確保targetRow存在且不是placeholder
-        if (targetRow && targetRow !== placeholder && targetRow.classList.contains('cycle-row')) {
-          wrap.insertBefore(placeholder, targetRow);
+        if (targetRow && targetRow.classList.contains('cycle-row')) {
+          wrap.insertBefore(spacer, targetRow);
         }
       } else if (currentRows.length > 0) {
         // 插入到最後一個row之後
         const lastRow = currentRows[currentRows.length - 1];
-        if (lastRow && lastRow !== placeholder && lastRow.classList.contains('cycle-row')) {
-          // 找到lastRow的下一個兄弟節點（可能是grid-header或其他元素）
+        if (lastRow && lastRow.classList.contains('cycle-row')) {
           let nextSibling = lastRow.nextSibling;
-          // 跳過任何placeholder
-          while (nextSibling && (nextSibling === placeholder || nextSibling.classList.contains('row-placeholder'))) {
+          while (nextSibling && (nextSibling === spacer || nextSibling.classList.contains('row-spacer'))) {
             nextSibling = nextSibling.nextSibling;
           }
           if (nextSibling) {
-            wrap.insertBefore(placeholder, nextSibling);
+            wrap.insertBefore(spacer, nextSibling);
           } else {
-            wrap.appendChild(placeholder);
+            wrap.appendChild(spacer);
           }
         }
       } else {
         // 如果沒有其他row，插入到grid-header之後
         const gridHeader = wrap.querySelector('.grid-header');
-        if (gridHeader && gridHeader.nextSibling !== placeholder) {
-          wrap.insertBefore(placeholder, gridHeader.nextSibling);
+        if (gridHeader) {
+          wrap.insertBefore(spacer, gridHeader.nextSibling);
         } else {
-          wrap.appendChild(placeholder);
+          wrap.appendChild(spacer);
         }
       }
     }
@@ -594,18 +636,12 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.stopPropagation();
     }
     
-    // 先移除所有placeholder（防止多餘的）
-    const allPlaceholders = wrap.querySelectorAll('.row-placeholder');
-    allPlaceholders.forEach(p => p.remove());
-    
-    // 將 row 放回正確位置（根據placeholder的位置）
-    // 如果placeholder還在，插入到placeholder的位置
-    if (placeholder.parentNode === wrap) {
-      wrap.insertBefore(row, placeholder);
-      placeholder.remove();
+    // 移除spacer
+    if (spacer.parentNode === wrap) {
+      wrap.insertBefore(row, spacer);
+      spacer.remove();
     } else {
-      // 如果placeholder已經被移除，找到正確的插入位置
-      // 根據row的當前位置找到應該插入的地方
+      // 如果spacer已經被移除，根據row的當前位置找到應該插入的地方
       const allRows = Array.from(wrap.querySelectorAll('.cycle-row')).filter(r => r !== row);
       const rowRect = row.getBoundingClientRect();
       let insertBefore = null;
@@ -624,6 +660,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
         wrap.appendChild(row);
       }
     }
+    
+    // 清理所有spacer和placeholder（防止多餘的）
+    wrap.querySelectorAll('.row-spacer, .row-placeholder').forEach(p => p.remove());
     
     row.classList.remove('dragging');
     row.style.position = '';
@@ -645,9 +684,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
-    // 再次確保所有placeholder都被清理
-    const remainingPlaceholders = wrap.querySelectorAll('.row-placeholder');
-    remainingPlaceholders.forEach(p => p.remove());
+    // 再次確保所有spacer和placeholder都被清理
+    wrap.querySelectorAll('.row-spacer, .row-placeholder').forEach(p => p.remove());
     
     // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);

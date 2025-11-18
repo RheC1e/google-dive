@@ -151,10 +151,20 @@ body{
   display:flex;
   justify-content:center;
   width:100%;
+  touch-action:manipulation;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  user-select:none;
 }
 .home .timer canvas{
   width:100%;
   height:auto;
+  touch-action:manipulation;
+  pointer-events:none;
+}
+.timer-wrapper{
+  touch-action:manipulation;
+  -webkit-touch-callout:none;
 }
 .ctrl-corner{
   position:absolute;
@@ -492,9 +502,16 @@ body{
     overflow:visible;
   }
 }
-.row-placeholder{
-  border-top:1px dashed var(--line);
-  border-bottom:1px dashed var(--line);
+.row-placeholder,
+.row-spacer{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  height:0;
+  min-height:0;
+  border:none;
+  margin:0;
+  padding:0;
 }
 .dragging-global{user-select:none;cursor:grabbing;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;touch-action:none}
 .right{text-align:right;padding-right:6px}
@@ -557,6 +574,8 @@ button:disabled{opacity:.5;pointer-events:none}
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  touch-action:pan-y;
+  -webkit-overflow-scrolling:touch;
 }
 .edit-table .section-header{
   flex-shrink:0;
@@ -576,6 +595,11 @@ button:disabled{opacity:.5;pointer-events:none}
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+}
+.edit-table .section-header .title .table-name-highlight{
+  color:var(--accent);
+  font-weight:700;
+  font-size:1.1em;
 }
 .edit-table .section-header .btn.primary{
   flex-shrink:0;
