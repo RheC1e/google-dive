@@ -73,13 +73,9 @@
     <template id="tpl-edit-table">
       <section class="edit-table">
         <header class="section-header">
-          <button id="closeEditBtn" class="btn text">Close</button>
+          <button id="closeEditBtn" class="icon-btn" title="返回">←</button>
           <div class="title" id="editTitle">Edit table</div>
-          <div class="row-actions">
-            <button id="addRowBtn" class="icon-btn">＋</button>
-            <button id="reorderBtn" class="icon-btn">⇅</button>
-            <button id="doneEditBtn" class="btn primary">Save</button>
-          </div>
+          <button id="doneEditBtn" class="btn primary">Save</button>
         </header>
 
         <div class="form">
@@ -91,13 +87,15 @@
           </label>
         </div>
 
-        <div class="grid-header">
-          <div>#</div>
-          <div>Hold</div>
-          <div>Breath</div>
-          <div class="right"></div>
+        <div class="table-container">
+          <div class="grid-header">
+            <div><button id="addRowBtn" class="icon-btn add-in-header">＋</button></div>
+            <div>Hold</div>
+            <div>Breath</div>
+            <div class="right"><button id="reorderBtn" class="icon-btn">⇅</button></div>
+          </div>
+          <div id="cycleList" class="cycle-list"></div>
         </div>
-        <div id="cycleList" class="cycle-list"></div>
       </section>
     </template>
 

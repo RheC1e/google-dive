@@ -120,23 +120,35 @@ function scrollRowIntoView(row) {
   
   // 使用setTimeout確保DOM已更新
   setTimeout(() => {
+    const header = wrap.querySelector('.grid-header');
+    const headerHeight = header ? header.offsetHeight : 0;
     const rowTop = row.offsetTop;
     const rowHeight = row.offsetHeight;
     const wrapHeight = wrap.clientHeight;
     const wrapScrollTop = wrap.scrollTop;
     
-    // 計算目標位置：讓row顯示在倒數第2行的位置（從底部往上數第2行）
-    // 這樣用戶可以看到當前循環和下一個循環
+    // 計算目標位置：讓row顯示在header下方，並確保可以看到完整的row
+    // 目標是讓row的頂部對齊header底部，或者如果row在視窗內就不滾動
     const rowBottom = rowTop + rowHeight;
-    const targetBottom = wrapHeight - rowHeight * 2; // 倒數第2行
-    const targetScrollTop = rowBottom - targetBottom;
+    const visibleTop = wrapScrollTop + headerHeight;
+    const visibleBottom = wrapScrollTop + wrapHeight;
     
-    // 如果row不在目標位置，則滾動
-    const currentBottom = wrapScrollTop + wrapHeight;
-    const diff = Math.abs(rowBottom - (wrapScrollTop + targetBottom));
-    if (diff > rowHeight * 0.5) {
+    // 如果row完全在可見區域內（考慮header），不需要滾動
+    if (rowTop >= visibleTop && rowBottom <= visibleBottom) {
+      return;
+    }
+    
+    // 如果row在header下方但不可見，滾動到讓row顯示在header下方
+    let targetScrollTop = rowTop - headerHeight;
+    
+    // 確保不會滾動到負數
+    targetScrollTop = Math.max(0, targetScrollTop);
+    
+    // 如果目標位置與當前位置差異較大，才滾動
+    const diff = Math.abs(wrapScrollTop - targetScrollTop);
+    if (diff > rowHeight * 0.3) {
       wrap.scrollTo({ 
-        top: Math.max(0, targetScrollTop),
+        top: targetScrollTop,
         behavior: 'smooth' 
       });
     }
@@ -294,7 +306,7 @@ function renderCycleList() {
     row.draggable = false;
     row.style.cursor = 'default';
     row.innerHTML = `
-      <div class="idx">${i + 1}</div>
+      <div class="idx"></div>
       <div><button class="btn" data-kind="hold">${secToMMSS(c.hold)}</button></div>
       <div><button class="btn" data-kind="breath">${secToMMSS(c.breath)}</button></div>
       <div class="right">
@@ -582,19 +594,35 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.stopPropagation();
     }
     
-    // 清理所有placeholder（防止多餘的）
+    // 先移除所有placeholder（防止多餘的）
     const allPlaceholders = wrap.querySelectorAll('.row-placeholder');
-    allPlaceholders.forEach(p => {
-      if (p !== placeholder) p.remove();
-    });
+    allPlaceholders.forEach(p => p.remove());
     
-    // 將 row 放回 placeholder 位置
+    // 將 row 放回正確位置（根據placeholder的位置）
+    // 如果placeholder還在，插入到placeholder的位置
     if (placeholder.parentNode === wrap) {
       wrap.insertBefore(row, placeholder);
       placeholder.remove();
     } else {
-      // 如果placeholder已經被移除，插入到最後
-      wrap.appendChild(row);
+      // 如果placeholder已經被移除，找到正確的插入位置
+      // 根據row的當前位置找到應該插入的地方
+      const allRows = Array.from(wrap.querySelectorAll('.cycle-row')).filter(r => r !== row);
+      const rowRect = row.getBoundingClientRect();
+      let insertBefore = null;
+      
+      for (const otherRow of allRows) {
+        const otherRect = otherRow.getBoundingClientRect();
+        if (rowRect.top < otherRect.top) {
+          insertBefore = otherRow;
+          break;
+        }
+      }
+      
+      if (insertBefore) {
+        wrap.insertBefore(row, insertBefore);
+      } else {
+        wrap.appendChild(row);
+      }
     }
     
     row.classList.remove('dragging');
@@ -617,7 +645,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
-    // 再次確保所有placeholder都被清理（使用已存在的變量）
+    // 再次確保所有placeholder都被清理
     const remainingPlaceholders = wrap.querySelectorAll('.row-placeholder');
     remainingPlaceholders.forEach(p => p.remove());
     
