@@ -521,33 +521,43 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
         placeholder.remove();
       }
       
-      // 重新獲取所有rows（因為DOM可能已改變）
+      // 重新獲取所有rows（排除row和placeholder）
       const currentChildren = Array.from(wrap.children);
-      const currentRows = currentChildren.filter(el => el.classList.contains('cycle-row') && el !== row && el !== placeholder);
+      const currentRows = currentChildren.filter(el => 
+        el.classList.contains('cycle-row') && 
+        el !== row && 
+        el !== placeholder &&
+        el.classList.contains('cycle-row') // 雙重檢查
+      );
       
       // 移動placeholder到正確位置
       if (targetIndex < currentRows.length && currentRows.length > 0) {
         const targetRow = currentRows[targetIndex];
         // 確保targetRow存在且不是placeholder
-        if (targetRow && targetRow !== placeholder) {
+        if (targetRow && targetRow !== placeholder && targetRow.classList.contains('cycle-row')) {
           wrap.insertBefore(placeholder, targetRow);
         }
       } else if (currentRows.length > 0) {
-        // 插入到最後
+        // 插入到最後一個row之後
         const lastRow = currentRows[currentRows.length - 1];
-        if (lastRow && lastRow !== placeholder) {
-          // 確保lastRow.nextSibling不是placeholder
-          if (lastRow.nextSibling !== placeholder) {
-            wrap.insertBefore(placeholder, lastRow.nextSibling);
+        if (lastRow && lastRow !== placeholder && lastRow.classList.contains('cycle-row')) {
+          // 找到lastRow的下一個兄弟節點（可能是grid-header或其他元素）
+          let nextSibling = lastRow.nextSibling;
+          // 跳過任何placeholder
+          while (nextSibling && (nextSibling === placeholder || nextSibling.classList.contains('row-placeholder'))) {
+            nextSibling = nextSibling.nextSibling;
+          }
+          if (nextSibling) {
+            wrap.insertBefore(placeholder, nextSibling);
           } else {
-            wrap.insertBefore(placeholder, lastRow);
+            wrap.appendChild(placeholder);
           }
         }
       } else {
-        // 如果沒有其他row，插入到第一個位置（但確保不是placeholder）
-        const firstChild = wrap.firstChild;
-        if (firstChild && firstChild !== placeholder) {
-          wrap.insertBefore(placeholder, firstChild);
+        // 如果沒有其他row，插入到grid-header之後
+        const gridHeader = wrap.querySelector('.grid-header');
+        if (gridHeader && gridHeader.nextSibling !== placeholder) {
+          wrap.insertBefore(placeholder, gridHeader.nextSibling);
         } else {
           wrap.appendChild(placeholder);
         }
@@ -607,6 +617,10 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
+    // 確保所有placeholder都被清理
+    const allPlaceholders = wrap.querySelectorAll('.row-placeholder');
+    allPlaceholders.forEach(p => p.remove());
+    
     // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
     const uniqueKeys = [...new Set(keys)]; // 去重
@@ -614,10 +628,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 只保留存在的key，防止產生多餘的循環
     table.cycles = uniqueKeys.filter(k => map.has(k)).map((k) => map.get(k));
     state.editing.dirty = true;
-    // 使用setTimeout確保DOM操作完成後再渲染
-    setTimeout(() => {
-      renderCycleList();
-    }, 0);
+    // 直接渲染，不需要setTimeout
+    renderCycleList();
   }
 
   // 同時支援 pointer 和 touch 事件，使用 capture phase
