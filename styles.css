@@ -242,6 +242,7 @@ body{
   pointer-events:none;
   font-size:36px;
   font-weight:700;
+  background:transparent;
 }
 #plus10Btn .corner-label{font-size:24px;font-weight:700;}
 .corner-btn.disabled{
