@@ -668,20 +668,40 @@ function renderHome() {
     // 防止在非TABLE區域的touchmove觸發整頁滾動
     const preventPageScroll = (e) => {
       const target = e.target;
-      // 如果觸摸點不在TABLE區域內，阻止默認行為
-      if (!sessionTable.contains(target) && !homeFixed.contains(target)) {
-        // 檢查是否在滾動容器內
-        let scrollable = target;
-        while (scrollable && scrollable !== document.body) {
-          const style = getComputedStyle(scrollable);
-          if (scrollable === sessionTable || 
-              (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-              scrollable.scrollHeight > scrollable.clientHeight) {
-            return; // 在可滾動容器內，允許滾動
-          }
-          scrollable = scrollable.parentElement;
+      // 如果是按鈕或其他可交互元素，允許操作
+      if (target.tagName === 'BUTTON' || 
+          target.tagName === 'INPUT' || 
+          target.tagName === 'A' ||
+          target.closest('button') ||
+          target.closest('input') ||
+          target.closest('a')) {
+        return; // 允許按鈕和輸入框的操作
+      }
+      
+      // 如果觸摸點在TABLE區域內，允許滾動
+      if (sessionTable.contains(target)) {
+        return; // TABLE區域允許滾動
+      }
+      
+      // 如果觸摸點在固定區域（按鈕區域），允許操作
+      if (homeFixed.contains(target)) {
+        return; // 固定區域允許操作
+      }
+      
+      // 檢查是否在可滾動容器內
+      let scrollable = target;
+      while (scrollable && scrollable !== document.body) {
+        const style = getComputedStyle(scrollable);
+        if ((style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+            scrollable.scrollHeight > scrollable.clientHeight) {
+          return; // 在可滾動容器內，允許滾動
         }
-        // 不在可滾動容器內，阻止滾動
+        scrollable = scrollable.parentElement;
+      }
+      
+      // 不在可滾動容器內，且不是可交互元素，阻止滾動
+      // 但只在確實是滾動手勢時才阻止
+      if (e.touches && e.touches.length === 1) {
         e.preventDefault();
       }
     };
