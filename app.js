@@ -71,6 +71,18 @@ function mmssToSec(text) {
   return (m || 0) * 60 + (s || 0);
 }
 
+function setCornerButtonLabel(btn, symbol) {
+  if (!btn) return;
+  let label = btn.querySelector('.corner-label');
+  if (!label) {
+    label = document.createElement('span');
+    label.className = 'corner-label';
+    btn.textContent = '';
+    btn.appendChild(label);
+  }
+  label.textContent = symbol;
+}
+
 // App State
 const state = {
   data: loadData(),
@@ -707,7 +719,7 @@ function updateHomeUI() {
       skipBtn.classList.add('disabled');
     }
     if (pauseBtn) {
-      pauseBtn.textContent = '▶';
+      setCornerButtonLabel(pauseBtn, '▶');
       pauseBtn.title = '開始';
     }
   } else {
@@ -722,7 +734,7 @@ function updateHomeUI() {
       skipBtn.classList.remove('disabled');
     }
     if (pauseBtn) {
-      pauseBtn.textContent = state.session.paused ? '▶' : '⏸';
+      setCornerButtonLabel(pauseBtn, state.session.paused ? '▶' : '⏸');
       pauseBtn.title = state.session.paused ? '繼續' : '暫停';
     }
   }
