@@ -91,14 +91,19 @@ function adjustSessionTableHeight() {
     return;
   }
   const fixedRect = fixed.getBoundingClientRect();
-  // 計算可用高度：確保能顯示5行+緩衝（每行約56px，5行約280px，加上緩衝約350px）
-  // 但實際可用高度要考慮手機瀏覽器的工作列
+  // 計算可用高度：確保能顯示4行+1個空行（每行約56px，5行約280px，加上額外空間）
+  // 讓TABLE可以滾動到露出1個空行
   const viewportHeight = window.innerHeight;
   const usedHeight = fixedRect.bottom;
-  const available = Math.max(350, viewportHeight - usedHeight - 8);
+  // 計算：4行顯示 + 1行可滾動空間 = 至少5行的高度，但實際可用高度可能更多
+  const rowHeight = 56; // 每行約56px
+  const minVisibleRows = 4;
+  const minHeight = rowHeight * minVisibleRows;
+  const available = Math.max(minHeight + rowHeight, viewportHeight - usedHeight - 8);
   wrap.style.maxHeight = `${available}px`;
   wrap.style.overflowY = 'auto';
   wrap.style.webkitOverflowScrolling = 'touch';
+  wrap.style.touchAction = 'pan-y';
   // 確保可以滾動
   wrap.style.minHeight = '0';
 }
@@ -476,9 +481,11 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
 
   // 追蹤目標位置，防止頻繁DOM操作
   let lastTargetIndex = -1;
-  // 初始化lastTargetIndex為當前位置
-  const currentIndex = Array.from(wrap.children).indexOf(row);
+  // 初始化lastTargetIndex為當前位置（排除placeholder）
+  const allSiblings = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
+  const currentIndex = allSiblings.indexOf(row);
   lastTargetIndex = currentIndex >= 0 ? currentIndex : -1;
+  
   function onMove(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -506,21 +513,23 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     if (targetIndex !== lastTargetIndex) {
       lastTargetIndex = targetIndex;
       
+      // 先移除placeholder（如果存在）
+      if (placeholder.parentNode === wrap) {
+        placeholder.remove();
+      }
+      
       // 移動placeholder到正確位置
       if (targetIndex < allRows.length) {
         const targetRow = allRows[targetIndex];
-        // 確保placeholder在targetRow之前，且不是緊鄰的
-        if (targetRow.previousSibling !== placeholder) {
-          wrap.insertBefore(placeholder, targetRow);
-        }
+        // 插入到targetRow之前
+        wrap.insertBefore(placeholder, targetRow);
       } else {
         // 插入到最後
         const lastRow = allRows[allRows.length - 1];
         if (lastRow) {
-          if (lastRow.nextSibling !== placeholder) {
-            wrap.insertBefore(placeholder, lastRow.nextSibling);
-          }
-        } else if (wrap.firstChild !== placeholder) {
+          wrap.insertBefore(placeholder, lastRow.nextSibling);
+        } else {
+          // 如果沒有其他row，插入到第一個位置
           wrap.insertBefore(placeholder, wrap.firstChild);
         }
       }

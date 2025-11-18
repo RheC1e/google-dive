@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#2f3ba2" />
     <title>Dive Trainer</title>
     <link rel="manifest" href="manifest.webmanifest" />
@@ -49,11 +49,11 @@
             <button id="pauseBtn" class="ctrl-corner ctrl-top-left warn" title="開始/暫停">▶</button>
             <button id="skipBtn" class="ctrl-corner ctrl-top-right danger" title="跳過">⤼</button>
             <button id="plus10Btn" class="ctrl-corner ctrl-bottom-left" title="+10秒">+10s</button>
-            <button id="stopBtn" class="ctrl-corner ctrl-bottom-right stop" title="停止">■</button>
+            <button id="markDiaphragmBtn" class="ctrl-corner ctrl-bottom-right lung" title="記錄橫膈膜第一次抽動">🫁</button>
           </div>
           <div class="controls primary">
             <button id="pickTableBtn" class="btn">選擇 Table ▾</button>
-            <button id="markDiaphragmBtn" class="fab lung disabled" title="記錄橫膈膜第一次抽動" disabled>🫁</button>
+            <button id="stopBtn" class="btn stop" title="停止">■ 停止</button>
           </div>
         </div>
         <div id="sessionTableWrap" class="session-table"></div>
