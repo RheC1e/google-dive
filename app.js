@@ -91,21 +91,24 @@ function adjustSessionTableHeight() {
     return;
   }
   const fixedRect = fixed.getBoundingClientRect();
-  // 計算可用高度：確保能顯示4行+1個空行（每行約56px，5行約280px，加上額外空間）
-  // 讓TABLE可以滾動到露出1個空行
+  // 計算可用高度：確保能顯示4行+2行緩衝空間
   const viewportHeight = window.innerHeight;
   const usedHeight = fixedRect.bottom;
-  // 計算：4行顯示 + 1行可滾動空間 = 至少5行的高度，但實際可用高度可能更多
   const rowHeight = 56; // 每行約56px
   const minVisibleRows = 4;
+  const bufferRows = 2; // 額外2行緩衝空間
   const minHeight = rowHeight * minVisibleRows;
-  const available = Math.max(minHeight + rowHeight, viewportHeight - usedHeight - 8);
+  const bufferHeight = rowHeight * bufferRows;
+  // 確保至少有4行顯示 + 2行緩衝，但也要考慮實際可用高度
+  const available = Math.max(minHeight + bufferHeight, viewportHeight - usedHeight - 8);
   wrap.style.maxHeight = `${available}px`;
   wrap.style.overflowY = 'auto';
   wrap.style.webkitOverflowScrolling = 'touch';
   wrap.style.touchAction = 'pan-y';
   // 確保可以滾動
   wrap.style.minHeight = '0';
+  // 添加padding-bottom確保可以滾動到底部
+  wrap.style.paddingBottom = `${bufferHeight}px`;
 }
 
 function scrollRowIntoView(row) {
@@ -513,26 +516,38 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     if (targetIndex !== lastTargetIndex) {
       lastTargetIndex = targetIndex;
       
-      // 先移除placeholder（如果存在）
-      if (placeholder.parentNode === wrap) {
-        placeholder.remove();
-      }
-      
-      // 移動placeholder到正確位置
-      if (targetIndex < allRows.length) {
-        const targetRow = allRows[targetIndex];
-        // 插入到targetRow之前
-        wrap.insertBefore(placeholder, targetRow);
-      } else {
-        // 插入到最後
-        const lastRow = allRows[allRows.length - 1];
-        if (lastRow) {
-          wrap.insertBefore(placeholder, lastRow.nextSibling);
-        } else {
-          // 如果沒有其他row，插入到第一個位置
-          wrap.insertBefore(placeholder, wrap.firstChild);
+      // 使用requestAnimationFrame確保DOM操作順序正確
+      requestAnimationFrame(() => {
+        // 先移除placeholder（如果存在）
+        if (placeholder.parentNode === wrap) {
+          placeholder.remove();
         }
-      }
+        
+        // 重新獲取所有rows（因為DOM可能已改變）
+        const currentChildren = Array.from(wrap.children);
+        const currentRows = currentChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
+        
+        // 移動placeholder到正確位置
+        if (targetIndex < currentRows.length) {
+          const targetRow = currentRows[targetIndex];
+          // 確保targetRow存在且不是placeholder
+          if (targetRow && targetRow !== placeholder) {
+            wrap.insertBefore(placeholder, targetRow);
+          }
+        } else {
+          // 插入到最後
+          const lastRow = currentRows[currentRows.length - 1];
+          if (lastRow && lastRow !== placeholder) {
+            wrap.insertBefore(placeholder, lastRow.nextSibling);
+          } else if (wrap.firstChild && wrap.firstChild !== placeholder) {
+            // 如果沒有其他row，插入到第一個位置
+            wrap.insertBefore(placeholder, wrap.firstChild);
+          } else {
+            // 最後的保險：直接append
+            wrap.appendChild(placeholder);
+          }
+        }
+      });
     }
   }
   function cleanupListeners() {

@@ -90,6 +90,11 @@ body{
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   touch-action:pan-y;
+  min-height:0;
+  padding-bottom:120px;
+  display:grid;
+  gap:10px;
+  align-content:start;
 }
 .cycle-list{
   flex:1;
@@ -97,10 +102,11 @@ body{
   overflow-x:hidden;
   -webkit-overflow-scrolling:touch;
   touch-action:pan-y;
+  min-height:0;
+  padding-bottom:80px;
 }
 .section-header{display:flex;align-items:center;justify-content:space-between;margin:12px 0}
 .title{font-size:20px;font-weight:700}
-.card-list{display:grid;gap:10px}
 .card{
   background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;
 }
@@ -160,9 +166,8 @@ body{
 }
 .ctrl-corner{
   position:absolute;
-  width:44px;
-  height:44px;
-  border-radius:22px;
+  width:50px;
+  height:50px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -174,6 +179,7 @@ body{
   background:#2a2f3b;
   color:#fff;
   transition:transform 0.1s ease;
+  clip-path:polygon(0 0, 100% 0, 100% 60%, 60% 100%, 0 100%);
 }
 .ctrl-corner:active{
   transform:scale(0.95);
@@ -203,11 +209,30 @@ body{
   filter:grayscale(1);
   pointer-events:none;
 }
+.ctrl-corner.ctrl-top-left{
+  top:-10px;
+  left:-10px;
+  clip-path:polygon(0 0, 100% 0, 100% 60%, 60% 100%, 0 100%);
+}
+.ctrl-corner.ctrl-top-right{
+  top:-10px;
+  right:-10px;
+  clip-path:polygon(0 0, 100% 0, 100% 100%, 40% 100%, 0 60%);
+}
+.ctrl-corner.ctrl-bottom-left{
+  bottom:-10px;
+  left:-10px;
+  clip-path:polygon(0 40%, 60% 0, 100% 0, 100% 100%, 0 100%);
+}
+.ctrl-corner.ctrl-bottom-right{
+  bottom:-10px;
+  right:-10px;
+  clip-path:polygon(40% 0, 100% 0, 100% 100%, 0 100%, 0 40%);
+}
 @media (max-width:768px){
   .ctrl-corner{
-    width:40px;
-    height:40px;
-    border-radius:20px;
+    width:44px;
+    height:44px;
     font-size:14px;
   }
   .ctrl-corner.lung{
@@ -216,39 +241,21 @@ body{
   #plus10Btn{
     font-size:11px;
   }
-}
-.ctrl-corner.ctrl-top-left{
-  top:-12px;
-  left:-12px;
-}
-.ctrl-corner.ctrl-top-right{
-  top:-12px;
-  right:-12px;
-}
-.ctrl-corner.ctrl-bottom-left{
-  bottom:-12px;
-  left:-12px;
-}
-.ctrl-corner.ctrl-bottom-right{
-  bottom:-12px;
-  right:-12px;
-}
-@media (max-width:768px){
   .ctrl-corner.ctrl-top-left{
-    top:-10px;
-    left:-10px;
+    top:-8px;
+    left:-8px;
   }
   .ctrl-corner.ctrl-top-right{
-    top:-10px;
-    right:-10px;
+    top:-8px;
+    right:-8px;
   }
   .ctrl-corner.ctrl-bottom-left{
-    bottom:-10px;
-    left:-10px;
+    bottom:-8px;
+    left:-8px;
   }
   .ctrl-corner.ctrl-bottom-right{
-    bottom:-10px;
-    right:-10px;
+    bottom:-8px;
+    right:-8px;
   }
 }
 .home .controls.primary{
