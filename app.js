@@ -537,12 +537,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     return e.touches ? e.touches[0].clientY : e.clientY;
   }
 
-  // 追蹤目標位置，防止頻繁DOM操作
-  let lastTargetIndex = -1;
-  // 初始化lastTargetIndex為當前位置（排除placeholder）
-  const allSiblings = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
-  const currentIndex = allSiblings.indexOf(row);
-  lastTargetIndex = currentIndex >= 0 ? currentIndex : -1;
+  // 追蹤目標row元素，防止頻繁DOM操作
+  let lastTargetRow = null;
   
   function onMove(e) {
     e.preventDefault();
@@ -557,59 +553,39 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     const allChildren = Array.from(wrap.children);
     const allRows = allChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
     
-    // 找到目標插入位置
-    let targetIndex = allRows.length;
+    // 找到目標插入位置 - 基於實際的DOM位置，而不是索引
+    let targetRow = null;
     for (let i = 0; i < allRows.length; i++) {
       const el = allRows[i];
       const rect = el.getBoundingClientRect();
       const center = rect.top + rect.height / 2;
       if (clientY < center) {
-        targetIndex = i;
+        targetRow = el;
         break;
       }
     }
     
+    // 如果沒有找到目標row（拖曳到最後），targetRow為null
     // 只有當目標位置改變時才交換位置，防止頻繁DOM操作
-    if (targetIndex !== lastTargetIndex && targetIndex >= 0) {
-      const oldIndex = lastTargetIndex;
-      lastTargetIndex = targetIndex;
+    if (targetRow !== lastTargetRow) {
+      lastTargetRow = targetRow;
       
       // 直接交換row的位置，不使用spacer
-      if (targetIndex < allRows.length && allRows.length > 0) {
-        const targetRow = allRows[targetIndex];
-        if (targetRow && targetRow !== row) {
-          // 獲取當前row在DOM中的實際位置
-          const currentRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
-          const currentIndex = currentRows.indexOf(row);
-          
-          // 計算目標row在allRows中的索引對應到currentRows中的索引
-          let targetRowIndexInCurrent = -1;
-          for (let i = 0; i < currentRows.length; i++) {
-            if (currentRows[i] === targetRow) {
-              targetRowIndexInCurrent = i;
-              break;
-            }
-          }
-          
-          if (targetRowIndexInCurrent >= 0) {
-            // 如果目標位置在當前位置之後，插入到目標row之後
-            // 如果目標位置在當前位置之前，插入到目標row之前
-            if (targetIndex > currentIndex) {
-              // 向下移動：插入到目標row之後
-              if (targetRow.nextSibling && targetRow.nextSibling !== row) {
-                wrap.insertBefore(row, targetRow.nextSibling);
-              } else if (!targetRow.nextSibling) {
-                wrap.appendChild(row);
-              }
-            } else {
-              // 向上移動：插入到目標row之前
-              wrap.insertBefore(row, targetRow);
-            }
-            
-            // 更新wrapRect，因為DOM結構改變了
-            wrapRect = wrap.getBoundingClientRect();
-          }
+      if (targetRow && targetRow !== row) {
+        // 插入到目標row之前
+        wrap.insertBefore(row, targetRow);
+        // 更新startTop，因為DOM位置改變了
+        startTop = row.offsetTop;
+      } else if (targetRow === null && allRows.length > 0) {
+        // 拖曳到最後，插入到最後一個row之後
+        const lastRow = allRows[allRows.length - 1];
+        if (lastRow.nextSibling && lastRow.nextSibling !== row) {
+          wrap.insertBefore(row, lastRow.nextSibling);
+        } else {
+          wrap.appendChild(row);
         }
+        // 更新startTop
+        startTop = row.offsetTop;
       }
     }
   }
@@ -978,6 +954,11 @@ function nextPhase() {
     // 清除prepare的添加秒數
     state.session.prepareAddedSeconds = 0;
   } else if (state.session.phase === 'hold') {
+    // 如果是最後一個循環，hold結束時直接停止訓練
+    if (state.session.index === t.cycles.length - 1) {
+      stopSession();
+      return;
+    }
     state.session.phase = 'breath';
     state.session.phaseRemaining = t.cycles[state.session.index].breath;
   } else if (state.session.phase === 'breath') {
