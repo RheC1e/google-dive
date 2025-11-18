@@ -211,22 +211,22 @@ body{
 .corner-btn.corner-top-left{
   top:var(--corner-top-offset);
   left:var(--corner-offset);
-  --corner-translate:translate(-40%,-40%);
+  --corner-translate:translate(-50%,-50%);
 }
 .corner-btn.corner-top-right{
   top:var(--corner-top-offset);
   right:var(--corner-offset);
-  --corner-translate:translate(40%,-40%);
+  --corner-translate:translate(50%,-50%);
 }
 .corner-btn.corner-bottom-right{
   bottom:var(--corner-offset);
   right:var(--corner-offset);
-  --corner-translate:translate(40%,40%);
+  --corner-translate:translate(50%,50%);
 }
 .corner-btn.corner-bottom-left{
   bottom:var(--corner-offset);
   left:var(--corner-offset);
-  --corner-translate:translate(-40%,40%);
+  --corner-translate:translate(-50%,50%);
 }
 .corner-btn .corner-label{
   display:flex;
@@ -259,16 +259,16 @@ body{
   }
   #plus10Btn .corner-label{font-size:18px;font-weight:700;}
   .corner-btn.corner-top-left{
-    --corner-translate:translate(-30%,-30%);
+    --corner-translate:translate(-45%,-45%);
   }
   .corner-btn.corner-top-right{
-    --corner-translate:translate(30%,-30%);
+    --corner-translate:translate(45%,-45%);
   }
   .corner-btn.corner-bottom-right{
-    --corner-translate:translate(30%,30%);
+    --corner-translate:translate(45%,45%);
   }
   .corner-btn.corner-bottom-left{
-    --corner-translate:translate(-30%,30%);
+    --corner-translate:translate(-45%,45%);
   }
 }
 .home .controls.primary{
