@@ -507,7 +507,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   placeholder.className = 'row-placeholder';
   placeholder.style.height = `${rowRect.height}px`;
   placeholder.style.width = `${rowRect.width}px`;
-  wrap.insertBefore(placeholder, row.nextSibling);
+  wrap.insertBefore(placeholder, row);
 
   // 讓行跟手移動
   row.classList.add('dragging');

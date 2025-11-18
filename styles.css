@@ -529,16 +529,11 @@ body{
     overflow:visible;
   }
 }
-.row-placeholder,
-.row-spacer{
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-  height:0;
-  min-height:0;
-  border:none;
-  margin:0;
-  padding:0;
+.row-placeholder{
+  border-radius:12px;
+  background:rgba(255,255,255,.04);
+  border:1px dashed rgba(255,255,255,.12);
+  transition:background .2s ease;
 }
 .dragging-global{user-select:none;cursor:grabbing;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;touch-action:none}
 .right{text-align:right;padding-right:6px}
