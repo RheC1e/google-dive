@@ -211,12 +211,12 @@ body{
 .corner-btn.corner-top-left{
   top:var(--corner-top-offset);
   left:var(--corner-offset);
-  --corner-translate:translate(-50%,-50%);
+  --corner-translate:translate(-65%,-65%);
 }
 .corner-btn.corner-top-right{
   top:var(--corner-top-offset);
   right:var(--corner-offset);
-  --corner-translate:translate(50%,-50%);
+  --corner-translate:translate(65%,-65%);
 }
 .corner-btn.corner-bottom-right{
   bottom:var(--corner-offset);
@@ -259,10 +259,10 @@ body{
   }
   #plus10Btn .corner-label{font-size:18px;font-weight:700;}
   .corner-btn.corner-top-left{
-    --corner-translate:translate(-45%,-45%);
+    --corner-translate:translate(-60%,-60%);
   }
   .corner-btn.corner-top-right{
-    --corner-translate:translate(45%,-45%);
+    --corner-translate:translate(60%,-60%);
   }
   .corner-btn.corner-bottom-right{
     --corner-translate:translate(45%,45%);
