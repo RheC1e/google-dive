@@ -721,6 +721,7 @@ function updateHomeUI() {
     if (pauseBtn) {
       setCornerButtonLabel(pauseBtn, '▶');
       pauseBtn.title = '開始';
+      pauseBtn.classList.remove('paused');
     }
   } else {
     // 檢查是否已經按過肺部按鈕
@@ -736,6 +737,7 @@ function updateHomeUI() {
     if (pauseBtn) {
       setCornerButtonLabel(pauseBtn, state.session.paused ? '▶' : '⏸');
       pauseBtn.title = state.session.paused ? '繼續' : '暫停';
+      pauseBtn.classList.toggle('paused', state.session.paused);
     }
   }
   renderSessionTable();
