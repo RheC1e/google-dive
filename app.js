@@ -499,18 +499,28 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   existingPlaceholders.forEach(p => p.remove());
   
   const rowHeight = row.offsetHeight;
-  const startTop = row.offsetTop;
+  const startRect = row.getBoundingClientRect();
   const wrapRect = wrap.getBoundingClientRect();
-  const grabOffset = startClientY - row.getBoundingClientRect().top;
-
-  // 記錄原始位置索引
-  const originalIndex = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row')).indexOf(row);
+  const grabOffset = startClientY - startRect.top;
   
+  // 記錄初始位置（相對於wrap的頂部）
+  const initialTop = startRect.top - wrapRect.top;
+  
+  // 記錄所有row的初始位置，用於計算目標位置
+  const allInitialRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
+  const initialRowPositions = allInitialRows.map(el => {
+    const rect = el.getBoundingClientRect();
+    return {
+      element: el,
+      top: rect.top - wrapRect.top,
+      center: rect.top - wrapRect.top + rect.height / 2
+    };
+  });
+
   // 讓列跟手移動 - 使用transform而不是position absolute，避免影響布局
   // 先設置transition為none，避免動畫干擾
   row.style.transition = 'none';
   row.classList.add('dragging');
-  row.style.transform = 'scale(1.05)';
   row.style.opacity = '0.8';
   row.style.zIndex = '1000';
   document.body.classList.add('dragging-global');
@@ -537,56 +547,45 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     return e.touches ? e.touches[0].clientY : e.clientY;
   }
 
-  // 追蹤目標row元素，防止頻繁DOM操作
-  let lastTargetRow = null;
+  // 追蹤目標索引，防止頻繁DOM操作
+  let lastTargetIndex = -1;
+  const currentIndex = initialRowPositions.findIndex(p => p.element === row);
   
   function onMove(e) {
     e.preventDefault();
     e.stopPropagation();
     const clientY = getClientY(e);
     
-    // 使用transform移動row，不影響布局
-    const y = clientY - wrapRect.top - grabOffset;
-    row.style.transform = `translateY(${y - startTop}px) scale(1.05)`;
+    // 計算當前row應該顯示的位置（相對於wrap的頂部）
+    const currentWrapRect = wrap.getBoundingClientRect();
+    const targetY = clientY - currentWrapRect.top - grabOffset;
     
-    // 獲取所有cycle-row（不包括當前拖曳的row）
-    const allChildren = Array.from(wrap.children);
-    const allRows = allChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
+    // 計算transform：目標位置 - 初始位置
+    const transformY = targetY - initialTop;
+    row.style.transform = `translateY(${transformY}px) scale(1.05)`;
     
-    // 找到目標插入位置 - 基於實際的DOM位置，而不是索引
-    let targetRow = null;
-    for (let i = 0; i < allRows.length; i++) {
-      const el = allRows[i];
-      const rect = el.getBoundingClientRect();
-      const center = rect.top + rect.height / 2;
-      if (clientY < center) {
-        targetRow = el;
+    // 基於初始位置找到目標插入位置
+    const relativeY = clientY - wrapRect.top;
+    let targetIndex = initialRowPositions.length;
+    
+    for (let i = 0; i < initialRowPositions.length; i++) {
+      if (initialRowPositions[i].element === row) continue;
+      if (relativeY < initialRowPositions[i].center) {
+        targetIndex = i;
         break;
       }
     }
     
-    // 如果沒有找到目標row（拖曳到最後），targetRow為null
-    // 只有當目標位置改變時才交換位置，防止頻繁DOM操作
-    if (targetRow !== lastTargetRow) {
-      lastTargetRow = targetRow;
-      
-      // 直接交換row的位置，不使用spacer
-      if (targetRow && targetRow !== row) {
-        // 插入到目標row之前
-        wrap.insertBefore(row, targetRow);
-        // 更新startTop，因為DOM位置改變了
-        startTop = row.offsetTop;
-      } else if (targetRow === null && allRows.length > 0) {
-        // 拖曳到最後，插入到最後一個row之後
-        const lastRow = allRows[allRows.length - 1];
-        if (lastRow.nextSibling && lastRow.nextSibling !== row) {
-          wrap.insertBefore(row, lastRow.nextSibling);
-        } else {
-          wrap.appendChild(row);
-        }
-        // 更新startTop
-        startTop = row.offsetTop;
-      }
+    // 調整targetIndex：如果目標位置在當前位置之後，需要減1（因為row會被移除）
+    if (targetIndex > currentIndex) {
+      targetIndex--;
+    }
+    
+    // 只有當目標位置改變時才更新視覺提示（但不移動DOM）
+    if (targetIndex !== lastTargetIndex) {
+      lastTargetIndex = targetIndex;
+      // 這裡可以添加視覺反饋，比如高亮目標位置
+      // 但不在拖曳過程中移動DOM，避免位置跳動
     }
   }
   function cleanupListeners() {
@@ -626,6 +625,17 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     
     // 移除所有事件監聽器
     cleanupListeners();
+    
+    // 在拖曳結束時才移動DOM位置
+    if (lastTargetIndex >= 0 && lastTargetIndex !== currentIndex) {
+      const allRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
+      const targetRow = allRows[lastTargetIndex];
+      if (targetRow && targetRow !== row) {
+        wrap.insertBefore(row, targetRow);
+      } else if (lastTargetIndex >= allRows.length - 1) {
+        wrap.appendChild(row);
+      }
+    }
     
     // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
