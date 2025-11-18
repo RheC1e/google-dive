@@ -485,119 +485,69 @@ function getRects(wrap) {
 function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const wrap = $('#cycleList');
   const { table } = state.editing;
-  let row = $(`.cycle-row[data-key="${key}"]`, wrap);
+  const row = $(`.cycle-row[data-key="${key}"]`, wrap);
   if (!row) return;
-  
-  // 防止頁面滾動和文字選取
+
   if (startEvent) {
     startEvent.preventDefault();
     startEvent.stopPropagation();
   }
-  
-  // 清理可能存在的舊placeholder
-  const existingPlaceholders = wrap.querySelectorAll('.row-placeholder');
-  existingPlaceholders.forEach(p => p.remove());
-  
-  const rowHeight = row.offsetHeight;
-  const startRect = row.getBoundingClientRect();
+
+  // 確保 wrap 為定位容器
+  wrap.style.position = wrap.style.position || 'relative';
+
   const wrapRect = wrap.getBoundingClientRect();
-  const grabOffset = startClientY - startRect.top;
-  
-  // 記錄初始位置（相對於wrap的頂部）
-  const initialTop = startRect.top - wrapRect.top;
-  
-  // 記錄所有row的初始位置，用於計算目標位置
-  const allInitialRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
-  const initialRowPositions = allInitialRows.map(el => {
-    const rect = el.getBoundingClientRect();
-    return {
-      element: el,
-      top: rect.top - wrapRect.top,
-      center: rect.top - wrapRect.top + rect.height / 2
-    };
-  });
+  const rowRect = row.getBoundingClientRect();
+  const grabOffset = startClientY - rowRect.top;
+  const initialTop = rowRect.top - wrapRect.top + wrap.scrollTop;
+  const initialLeft = rowRect.left - wrapRect.left;
 
-  // 讓列跟手移動 - 使用transform而不是position absolute，避免影響布局
-  // 先設置transition為none，避免動畫干擾
-  row.style.transition = 'none';
+  // 建立 placeholder
+  const placeholder = document.createElement('div');
+  placeholder.className = 'row-placeholder';
+  placeholder.style.height = `${rowRect.height}px`;
+  placeholder.style.width = `${rowRect.width}px`;
+  wrap.insertBefore(placeholder, row.nextSibling);
+
+  // 讓行跟手移動
   row.classList.add('dragging');
-  row.style.opacity = '0.8';
+  row.style.position = 'absolute';
+  row.style.width = `${rowRect.width}px`;
+  row.style.left = `${initialLeft}px`;
+  row.style.top = `${initialTop}px`;
   row.style.zIndex = '1000';
+  row.style.pointerEvents = 'none';
   document.body.classList.add('dragging-global');
-  
-  // 禁用滾動和文字選取
-  const originalOverflow = document.body.style.overflow;
-  const originalTouchAction = document.body.style.touchAction;
-  const originalUserSelect = document.body.style.userSelect;
-  const originalWebkitUserSelect = document.body.style.webkitUserSelect;
-  const originalWebkitTouchCallout = document.body.style.webkitTouchCallout;
-  document.body.style.overflow = 'hidden';
-  document.body.style.touchAction = 'none';
-  document.body.style.userSelect = 'none';
-  document.body.style.webkitUserSelect = 'none';
-  document.body.style.webkitTouchCallout = 'none';
-  
-  // 禁用wrap的滾動
-  const originalWrapOverflow = wrap.style.overflow;
-  const originalWrapTouchAction = wrap.style.touchAction;
-  wrap.style.overflow = 'hidden';
-  wrap.style.touchAction = 'none';
 
-  function getClientY(e) {
-    return e.touches ? e.touches[0].clientY : e.clientY;
-  }
+  const getClientY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
 
-  // 追蹤目標索引，防止頻繁DOM操作
-  let lastTargetIndex = -1;
-  const currentIndex = initialRowPositions.findIndex(p => p.element === row);
-  
-  function onMove(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const clientY = getClientY(e);
-    
-    // 計算當前row應該顯示的位置（相對於wrap的頂部）
-    const currentWrapRect = wrap.getBoundingClientRect();
-    const targetY = clientY - currentWrapRect.top - grabOffset;
-    
-    // 計算transform：目標位置 - 初始位置
-    const transformY = targetY - initialTop;
-    row.style.transform = `translateY(${transformY}px) scale(1.05)`;
-    
-    // 基於初始位置找到目標插入位置
-    const relativeY = clientY - wrapRect.top;
-    let targetIndex = initialRowPositions.length;
-    
-    for (let i = 0; i < initialRowPositions.length; i++) {
-      if (initialRowPositions[i].element === row) continue;
-      if (relativeY < initialRowPositions[i].center) {
-        targetIndex = i;
-        break;
+  function movePlaceholder(centerY) {
+    const rows = Array.from(wrap.querySelectorAll('.cycle-row')).filter((el) => el !== row);
+    for (const target of rows) {
+      const targetCenter = target.offsetTop + target.offsetHeight / 2;
+      if (centerY < targetCenter) {
+        wrap.insertBefore(placeholder, target);
+        return;
       }
     }
-    
-    // 調整targetIndex：如果目標位置在當前位置之後，需要減1（因為row會被移除）
-    if (targetIndex > currentIndex) {
-      targetIndex--;
-    }
-    
-    // 只有當目標位置改變時才更新視覺提示（但不移動DOM）
-    if (targetIndex !== lastTargetIndex) {
-      lastTargetIndex = targetIndex;
-      // 這裡可以添加視覺反饋，比如高亮目標位置
-      // 但不在拖曳過程中移動DOM，避免位置跳動
-    }
+    wrap.appendChild(placeholder);
   }
-  function cleanupListeners() {
+
+  function onMove(e) {
+    e.preventDefault();
+    const clientY = getClientY(e);
+    const targetTop = clientY - wrapRect.top + wrap.scrollTop - grabOffset;
+    row.style.top = `${targetTop}px`;
+    movePlaceholder(targetTop + grabOffset);
+  }
+
+  function cleanup() {
     window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onUp, true);
     window.removeEventListener('pointercancel', onUp, true);
     window.removeEventListener('touchmove', onMove, true);
     window.removeEventListener('touchend', onUp, true);
     window.removeEventListener('touchcancel', onUp, true);
-    document.removeEventListener('touchmove', onMove, true);
-    document.removeEventListener('touchend', onUp, true);
-    document.removeEventListener('touchcancel', onUp, true);
   }
 
   function onUp(e) {
@@ -605,61 +555,35 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
-    // 恢復row的樣式
-    row.classList.remove('dragging');
-    row.style.transform = '';
-    row.style.opacity = '';
-    row.style.zIndex = '';
-    row.style.transition = '';
+    cleanup();
     document.body.classList.remove('dragging-global');
-    
-    // 恢復滾動和文字選取
-    document.body.style.overflow = originalOverflow;
-    document.body.style.touchAction = originalTouchAction;
-    document.body.style.userSelect = originalUserSelect;
-    document.body.style.webkitUserSelect = originalWebkitUserSelect;
-    document.body.style.webkitTouchCallout = originalWebkitTouchCallout;
-    wrap.style.overflow = originalWrapOverflow;
-    wrap.style.touchAction = originalWrapTouchAction;
-    
-    // 移除所有事件監聽器
-    cleanupListeners();
-    
-    // 在拖曳結束時才移動DOM位置
-    if (lastTargetIndex >= 0 && lastTargetIndex !== currentIndex) {
-      const allRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
-      const targetRow = allRows[lastTargetIndex];
-      if (targetRow && targetRow !== row) {
-        wrap.insertBefore(row, targetRow);
-      } else if (lastTargetIndex >= allRows.length - 1) {
-        wrap.appendChild(row);
-      }
-    }
-    
-    // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
+
+    // 將列放到 placeholder 位置
+    wrap.insertBefore(row, placeholder);
+    placeholder.remove();
+
+    row.classList.remove('dragging');
+    row.style.position = '';
+    row.style.left = '';
+    row.style.top = '';
+    row.style.width = '';
+    row.style.zIndex = '';
+    row.style.pointerEvents = '';
+
+    // 依照 DOM 順序更新資料
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
-    const uniqueKeys = [...new Set(keys)]; // 去重
     const map = new Map(table.cycles.map((c) => [c._k, c]));
-    // 只保留存在的key，防止產生多餘的循環
-    table.cycles = uniqueKeys.filter(k => map.has(k)).map((k) => map.get(k));
+    table.cycles = keys.map((k) => map.get(k));
     state.editing.dirty = true;
-    // 直接渲染，不需要setTimeout
     renderCycleList();
   }
 
-  // 同時支援 pointer 和 touch 事件，使用 capture phase
   window.addEventListener('pointermove', onMove, { passive: false, capture: true });
   window.addEventListener('pointerup', onUp, { passive: false, capture: true });
   window.addEventListener('pointercancel', onUp, { passive: false, capture: true });
   window.addEventListener('touchmove', onMove, { passive: false, capture: true });
   window.addEventListener('touchend', onUp, { passive: false, capture: true });
   window.addEventListener('touchcancel', onUp, { passive: false, capture: true });
-  document.addEventListener('touchmove', onMove, { passive: false, capture: true });
-  document.addEventListener('touchend', onUp, { passive: false, capture: true });
-  document.addEventListener('touchcancel', onUp, { passive: false, capture: true });
-
-  window.addEventListener('blur', onUp, { once: true });
 }
 
 // ---------- Home / Training ----------
