@@ -735,7 +735,7 @@ function updateHomeUI() {
       skipBtn.classList.remove('disabled');
     }
     if (pauseBtn) {
-      setCornerButtonLabel(pauseBtn, state.session.paused ? '▶' : '⏸');
+      setCornerButtonLabel(pauseBtn, state.session.paused ? '▶' : '||');
       pauseBtn.title = state.session.paused ? '繼續' : '暫停';
       pauseBtn.classList.toggle('paused', state.session.paused);
     }
@@ -932,7 +932,9 @@ function tick(now = performance.now()) {
     s.phaseRemaining -= dt;
     if (s.phaseRemaining <= 0) {
       nextPhase();
-      return;
+      // 更新時間戳，確保下一幀計算正確
+      s.lastTick = now;
+      // 繼續執行動畫循環，不要return
     }
   }
   // draw
