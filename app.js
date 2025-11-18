@@ -498,36 +498,32 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const wrapRect = wrap.getBoundingClientRect();
   const rowRect = row.getBoundingClientRect();
   const grabOffset = startClientY - rowRect.top;
-  const initialTop = rowRect.top - wrapRect.top + wrap.scrollTop;
-  const initialLeft = rowRect.left - wrapRect.left;
 
   const placeholder = document.createElement('div');
   placeholder.className = 'row-placeholder';
   placeholder.style.height = `${rowRect.height}px`;
   placeholder.style.width = `${rowRect.width}px`;
+  wrap.insertBefore(placeholder, row);
+  wrap.removeChild(row);
 
-  let dragActive = false;
-
-  function activateDrag() {
-    if (dragActive) return;
-    dragActive = true;
-    wrap.insertBefore(placeholder, row);
-    row.classList.add('dragging');
-    row.style.position = 'absolute';
-    row.style.width = `${rowRect.width}px`;
-    row.style.left = `${initialLeft}px`;
-    row.style.top = `${initialTop}px`;
-    row.style.zIndex = '1000';
-    row.style.pointerEvents = 'none';
-    document.body.classList.add('dragging-global');
-  }
+  const ghost = row;
+  ghost.classList.add('dragging');
+  ghost.style.position = 'fixed';
+  ghost.style.left = `${rowRect.left}px`;
+  ghost.style.top = `${rowRect.top}px`;
+  ghost.style.width = `${rowRect.width}px`;
+  ghost.style.pointerEvents = 'none';
+  ghost.style.margin = '0';
+  document.body.appendChild(ghost);
+  document.body.classList.add('dragging-global');
 
   const getClientY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
 
   function movePlaceholder(centerY) {
-    const rows = Array.from(wrap.querySelectorAll('.cycle-row')).filter((el) => el !== row);
+    const rows = Array.from(wrap.querySelectorAll('.cycle-row, .row-placeholder')).filter((el) => el !== placeholder && el.classList.contains('cycle-row'));
     for (const target of rows) {
-      const targetCenter = target.offsetTop + target.offsetHeight / 2;
+      const targetRect = target.getBoundingClientRect();
+      const targetCenter = targetRect.top - wrapRect.top + targetRect.height / 2 + wrap.scrollTop;
       if (centerY < targetCenter) {
         wrap.insertBefore(placeholder, target);
         return;
@@ -539,15 +535,10 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   function onMove(e) {
     e.preventDefault();
     const clientY = getClientY(e);
-    if (!dragActive) {
-      const moved = Math.abs(clientY - startClientY);
-      if (moved < 4) return;
-      activateDrag();
-    }
-    if (!dragActive) return;
-    const targetTop = clientY - wrapRect.top + wrap.scrollTop - grabOffset;
-    row.style.top = `${targetTop}px`;
-    movePlaceholder(targetTop + grabOffset);
+    const targetTop = clientY - grabOffset;
+    ghost.style.top = `${targetTop}px`;
+    const relativeCenter = clientY - wrapRect.top + wrap.scrollTop;
+    movePlaceholder(relativeCenter);
   }
 
   function cleanup() {
@@ -565,19 +556,18 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.stopPropagation();
     }
     cleanup();
-    if (!dragActive) return;
     document.body.classList.remove('dragging-global');
 
-    wrap.insertBefore(row, placeholder);
-    placeholder.remove();
+    ghost.classList.remove('dragging');
+    ghost.style.position = '';
+    ghost.style.left = '';
+    ghost.style.top = '';
+    ghost.style.width = '';
+    ghost.style.pointerEvents = '';
+    ghost.style.margin = '';
 
-    row.classList.remove('dragging');
-    row.style.position = '';
-    row.style.left = '';
-    row.style.top = '';
-    row.style.width = '';
-    row.style.zIndex = '';
-    row.style.pointerEvents = '';
+    wrap.insertBefore(ghost, placeholder);
+    placeholder.remove();
 
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
     const map = new Map(table.cycles.map((c) => [c._k, c]));
