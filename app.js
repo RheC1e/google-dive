@@ -91,12 +91,16 @@ function adjustSessionTableHeight() {
     return;
   }
   const fixedRect = fixed.getBoundingClientRect();
-  // 計算可用高度：確保至少能顯示4行（每行約56px，加上header約60px，總共約280px）
-  const minHeight = 280;
-  const available = Math.max(minHeight, window.innerHeight - fixedRect.bottom - 12);
+  // 計算可用高度：確保能顯示5行+緩衝（每行約56px，5行約280px，加上緩衝約350px）
+  // 但實際可用高度要考慮手機瀏覽器的工作列
+  const viewportHeight = window.innerHeight;
+  const usedHeight = fixedRect.bottom;
+  const available = Math.max(350, viewportHeight - usedHeight - 8);
   wrap.style.maxHeight = `${available}px`;
   wrap.style.overflowY = 'auto';
   wrap.style.webkitOverflowScrolling = 'touch';
+  // 確保可以滾動
+  wrap.style.minHeight = '0';
 }
 
 function scrollRowIntoView(row) {
@@ -113,17 +117,22 @@ function scrollRowIntoView(row) {
     const wrapHeight = wrap.clientHeight;
     const wrapScrollTop = wrap.scrollTop;
     
-    // 計算目標位置：讓row顯示在wrap的頂部
-    const targetScrollTop = rowTop - wrap.offsetTop;
+    // 計算目標位置：讓row顯示在倒數第2行的位置（從底部往上數第2行）
+    // 這樣用戶可以看到當前循環和下一個循環
+    const rowBottom = rowTop + rowHeight;
+    const targetBottom = wrapHeight - rowHeight * 2; // 倒數第2行
+    const targetScrollTop = rowBottom - targetBottom;
     
-    // 如果row不在可見區域，則滾動
-    if (targetScrollTop < wrapScrollTop || targetScrollTop + rowHeight > wrapScrollTop + wrapHeight) {
+    // 如果row不在目標位置，則滾動
+    const currentBottom = wrapScrollTop + wrapHeight;
+    const diff = Math.abs(rowBottom - (wrapScrollTop + targetBottom));
+    if (diff > rowHeight * 0.5) {
       wrap.scrollTo({ 
-        top: Math.max(0, targetScrollTop - 8), // 留一點間距
+        top: Math.max(0, targetScrollTop),
         behavior: 'smooth' 
       });
     }
-  }, 50);
+  }, 100);
 }
 
 window.addEventListener('resize', adjustSessionTableHeight);
@@ -465,6 +474,11 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     return e.touches ? e.touches[0].clientY : e.clientY;
   }
 
+  // 追蹤目標位置，防止頻繁DOM操作
+  let lastTargetIndex = -1;
+  // 初始化lastTargetIndex為當前位置
+  const currentIndex = Array.from(wrap.children).indexOf(row);
+  lastTargetIndex = currentIndex >= 0 ? currentIndex : -1;
   function onMove(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -477,32 +491,38 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     const allRows = allChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
     
     // 找到目標插入位置
-    let targetRow = null;
+    let targetIndex = allRows.length;
     for (let i = 0; i < allRows.length; i++) {
       const el = allRows[i];
       const rect = el.getBoundingClientRect();
       const center = rect.top + rect.height / 2;
       if (clientY < center) {
-        targetRow = el;
+        targetIndex = i;
         break;
       }
     }
     
-    // 移動placeholder到正確位置
-    if (targetRow) {
-      // 插入到targetRow之前
-      if (targetRow.previousSibling !== placeholder) {
-        wrap.insertBefore(placeholder, targetRow);
-      }
-    } else {
-      // 插入到最後
-      const lastRow = allRows[allRows.length - 1];
-      if (lastRow) {
-        if (lastRow.nextSibling !== placeholder) {
-          wrap.insertBefore(placeholder, lastRow.nextSibling);
+    // 只有當目標位置改變時才移動placeholder，防止頻繁DOM操作
+    if (targetIndex !== lastTargetIndex) {
+      lastTargetIndex = targetIndex;
+      
+      // 移動placeholder到正確位置
+      if (targetIndex < allRows.length) {
+        const targetRow = allRows[targetIndex];
+        // 確保placeholder在targetRow之前，且不是緊鄰的
+        if (targetRow.previousSibling !== placeholder) {
+          wrap.insertBefore(placeholder, targetRow);
         }
-      } else if (wrap.firstChild !== placeholder) {
-        wrap.insertBefore(placeholder, wrap.firstChild);
+      } else {
+        // 插入到最後
+        const lastRow = allRows[allRows.length - 1];
+        if (lastRow) {
+          if (lastRow.nextSibling !== placeholder) {
+            wrap.insertBefore(placeholder, lastRow.nextSibling);
+          }
+        } else if (wrap.firstChild !== placeholder) {
+          wrap.insertBefore(placeholder, wrap.firstChild);
+        }
       }
     }
   }
@@ -559,12 +579,17 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // 移除所有事件監聽器
     cleanupListeners();
 
-    // 依據目前 DOM 順序重排資料（只考慮cycle-row）
+    // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
+    const uniqueKeys = [...new Set(keys)]; // 去重
     const map = new Map(table.cycles.map((c) => [c._k, c]));
-    table.cycles = keys.map((k) => map.get(k));
+    // 只保留存在的key，防止產生多餘的循環
+    table.cycles = uniqueKeys.filter(k => map.has(k)).map((k) => map.get(k));
     state.editing.dirty = true;
-    renderCycleList();
+    // 使用setTimeout確保DOM操作完成後再渲染
+    setTimeout(() => {
+      renderCycleList();
+    }, 0);
   }
 
   // 同時支援 pointer 和 touch 事件，使用 capture phase
@@ -696,7 +721,6 @@ function updateHomeUI() {
   }
   
   if (!running) {
-    $('#runningControls').hidden = false;
     lung.classList.add('disabled');
     lung.disabled = true;
     if (skipBtn) {
@@ -708,7 +732,6 @@ function updateHomeUI() {
       pauseBtn.title = '開始';
     }
   } else {
-    $('#runningControls').hidden = false;
     // 檢查是否已經按過肺部按鈕
     const alreadyMarked = state.session.phase === 'hold' && state.session.contractions[state.session.index] != null;
     const holdActive = state.session.phase === 'hold' && !paused && !alreadyMarked;

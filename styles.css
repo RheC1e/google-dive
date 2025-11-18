@@ -105,22 +105,109 @@ body{
 .home .timer-header{
   display:none;
 }
-.home .timer{
+.timer-wrapper{
   position:relative;
   display:flex;
   justify-content:center;
+  align-items:center;
   margin:2px 0;
   width:min(92vw,280px);
 }
 @media (max-width:768px){
-  .home .timer{
+  .timer-wrapper{
     margin:1px 0;
     width:min(70vw,180px);
   }
 }
+.home .timer{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  width:100%;
+}
 .home .timer canvas{
   width:100%;
   height:auto;
+}
+.ctrl-corner{
+  position:absolute;
+  width:36px;
+  height:36px;
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+  z-index:10;
+  border:none;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+  background:#2a2f3b;
+  color:#fff;
+}
+.ctrl-corner.warn{
+  background:var(--warn);
+  color:#000;
+}
+.ctrl-corner.danger{
+  background:#e84e63;
+  color:#fff;
+}
+.ctrl-corner.stop{
+  background:#ffa726;
+  color:#000;
+  font-weight:700;
+}
+#plus10Btn{
+  background:#4a5568;
+  color:#fff;
+}
+.ctrl-corner.disabled{
+  opacity:.4;
+  filter:grayscale(1);
+  pointer-events:none;
+}
+@media (max-width:768px){
+  .ctrl-corner{
+    width:32px;
+    height:32px;
+    border-radius:16px;
+    font-size:12px;
+  }
+}
+.ctrl-corner.ctrl-top-left{
+  top:-8px;
+  left:-8px;
+}
+.ctrl-corner.ctrl-top-right{
+  top:-8px;
+  right:-8px;
+}
+.ctrl-corner.ctrl-bottom-left{
+  bottom:-8px;
+  left:-8px;
+}
+.ctrl-corner.ctrl-bottom-right{
+  bottom:-8px;
+  right:-8px;
+}
+@media (max-width:768px){
+  .ctrl-corner.ctrl-top-left{
+    top:-4px;
+    left:-4px;
+  }
+  .ctrl-corner.ctrl-top-right{
+    top:-4px;
+    right:-4px;
+  }
+  .ctrl-corner.ctrl-bottom-left{
+    bottom:-4px;
+    left:-4px;
+  }
+  .ctrl-corner.ctrl-bottom-right{
+    bottom:-4px;
+    right:-4px;
+  }
 }
 .home .controls.primary{
   flex-shrink:0;
@@ -155,33 +242,7 @@ body{
   }
 }
 .home .controls.secondary{
-  flex-shrink:0;
-  margin-top:2px;
-  gap:6px;
-  width:100%;
-  max-width:640px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-@media (max-width:768px){
-  .home .controls.secondary{
-    margin-top:0;
-    gap:3px;
-    position:absolute;
-    top:60px;
-    right:8px;
-    width:auto;
-    max-width:none;
-    flex-direction:row;
-    z-index:3;
-  }
-  .home .controls.secondary .ctrl{
-    width:32px;
-    height:32px;
-    font-size:11px;
-    padding:0;
-  }
+  display:none;
 }
 .session-table{
   flex:1;

@@ -38,22 +38,22 @@
               <span class="small">SPO2:</span> --
             </button>
           </div>
-          <div class="timer">
-            <canvas id="ring" width="320" height="320"></canvas>
-            <div class="timer-center">
-              <div id="timeText" class="time">00:00</div>
-              <div id="phaseText" class="phase">Prepare</div>
+          <div class="timer-wrapper">
+            <div class="timer">
+              <canvas id="ring" width="320" height="320"></canvas>
+              <div class="timer-center">
+                <div id="timeText" class="time">00:00</div>
+                <div id="phaseText" class="phase">Prepare</div>
+              </div>
             </div>
+            <button id="pauseBtn" class="ctrl-corner ctrl-top-left warn" title="開始/暫停">▶</button>
+            <button id="skipBtn" class="ctrl-corner ctrl-top-right danger" title="跳過">⤼</button>
+            <button id="plus10Btn" class="ctrl-corner ctrl-bottom-left" title="+10秒">+10s</button>
+            <button id="stopBtn" class="ctrl-corner ctrl-bottom-right stop" title="停止">■</button>
           </div>
           <div class="controls primary">
             <button id="pickTableBtn" class="btn">選擇 Table ▾</button>
             <button id="markDiaphragmBtn" class="fab lung disabled" title="記錄橫膈膜第一次抽動" disabled>🫁</button>
-          </div>
-          <div class="controls secondary" id="runningControls">
-            <button id="pauseBtn" class="ctrl warn">▶</button>
-            <button id="skipBtn" class="ctrl danger">⤼</button>
-            <button id="plus10Btn" class="ctrl">+10s</button>
-            <button id="stopBtn" class="ctrl stop">■</button>
           </div>
         </div>
         <div id="sessionTableWrap" class="session-table"></div>
