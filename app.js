@@ -306,6 +306,13 @@ function renderEditTable() {
   });
   $('#reorderBtn').addEventListener('click', () => {
     state.editing.reorderMode = !state.editing.reorderMode;
+    // 更新按鈕狀態
+    const reorderBtn = $('#reorderBtn');
+    if (state.editing.reorderMode) {
+      reorderBtn.classList.add('active');
+    } else {
+      reorderBtn.classList.remove('active');
+    }
     renderCycleList();
   });
   renderCycleList(reorderMode);
@@ -496,28 +503,16 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   const wrapRect = wrap.getBoundingClientRect();
   const grabOffset = startClientY - row.getBoundingClientRect().top;
 
-  // 記錄原始位置，用於維持布局
-  const originalNextSibling = row.nextSibling;
+  // 記錄原始位置索引
+  const originalIndex = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row')).indexOf(row);
   
-  // 讓列跟手移動
+  // 讓列跟手移動 - 使用transform而不是position absolute，避免影響布局
+  // 先設置transition為none，避免動畫干擾
+  row.style.transition = 'none';
   row.classList.add('dragging');
-  row.style.position = 'absolute';
-  row.style.width = '100%';
-  row.style.left = '0';
-  row.style.top = `${startTop}px`;
-  row.style.zIndex = '5';
-  // 使用margin來維持原始空間，避免布局塌陷
-  const spacer = document.createElement('div');
-  spacer.className = 'row-spacer';
-  spacer.style.cssText = `
-    height: ${rowHeight}px;
-    margin: 0;
-    padding: 0;
-    border: none;
-    visibility: hidden;
-    pointer-events: none;
-  `;
-  wrap.insertBefore(spacer, originalNextSibling);
+  row.style.transform = 'scale(1.05)';
+  row.style.opacity = '0.8';
+  row.style.zIndex = '1000';
   document.body.classList.add('dragging-global');
   
   // 禁用滾動和文字選取
@@ -553,10 +548,12 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     e.preventDefault();
     e.stopPropagation();
     const clientY = getClientY(e);
-    const y = clientY - wrapRect.top - grabOffset;
-    row.style.top = `${y}px`;
     
-    // 獲取所有cycle-row（不包括當前拖曳的row和placeholder）
+    // 使用transform移動row，不影響布局
+    const y = clientY - wrapRect.top - grabOffset;
+    row.style.transform = `translateY(${y - startTop}px) scale(1.05)`;
+    
+    // 獲取所有cycle-row（不包括當前拖曳的row）
     const allChildren = Array.from(wrap.children);
     const allRows = allChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
     
@@ -572,48 +569,46 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       }
     }
     
-    // 只有當目標位置改變時才移動spacer，防止頻繁DOM操作
-    if (targetIndex !== lastTargetIndex) {
+    // 只有當目標位置改變時才交換位置，防止頻繁DOM操作
+    if (targetIndex !== lastTargetIndex && targetIndex >= 0) {
+      const oldIndex = lastTargetIndex;
       lastTargetIndex = targetIndex;
       
-      // 重新獲取所有rows（排除row和spacer）
-      const currentChildren = Array.from(wrap.children);
-      const currentRows = currentChildren.filter(el => 
-        el.classList.contains('cycle-row') && 
-        el !== row
-      );
-      
-      // 移動spacer到正確位置（用於維持布局）
-      if (spacer.parentNode === wrap) {
-        spacer.remove();
-      }
-      
-      if (targetIndex < currentRows.length && currentRows.length > 0) {
-        const targetRow = currentRows[targetIndex];
-        if (targetRow && targetRow.classList.contains('cycle-row')) {
-          wrap.insertBefore(spacer, targetRow);
-        }
-      } else if (currentRows.length > 0) {
-        // 插入到最後一個row之後
-        const lastRow = currentRows[currentRows.length - 1];
-        if (lastRow && lastRow.classList.contains('cycle-row')) {
-          let nextSibling = lastRow.nextSibling;
-          while (nextSibling && (nextSibling === spacer || nextSibling.classList.contains('row-spacer'))) {
-            nextSibling = nextSibling.nextSibling;
+      // 直接交換row的位置，不使用spacer
+      if (targetIndex < allRows.length && allRows.length > 0) {
+        const targetRow = allRows[targetIndex];
+        if (targetRow && targetRow !== row) {
+          // 獲取當前row在DOM中的實際位置
+          const currentRows = Array.from(wrap.children).filter(el => el.classList.contains('cycle-row'));
+          const currentIndex = currentRows.indexOf(row);
+          
+          // 計算目標row在allRows中的索引對應到currentRows中的索引
+          let targetRowIndexInCurrent = -1;
+          for (let i = 0; i < currentRows.length; i++) {
+            if (currentRows[i] === targetRow) {
+              targetRowIndexInCurrent = i;
+              break;
+            }
           }
-          if (nextSibling) {
-            wrap.insertBefore(spacer, nextSibling);
-          } else {
-            wrap.appendChild(spacer);
+          
+          if (targetRowIndexInCurrent >= 0) {
+            // 如果目標位置在當前位置之後，插入到目標row之後
+            // 如果目標位置在當前位置之前，插入到目標row之前
+            if (targetIndex > currentIndex) {
+              // 向下移動：插入到目標row之後
+              if (targetRow.nextSibling && targetRow.nextSibling !== row) {
+                wrap.insertBefore(row, targetRow.nextSibling);
+              } else if (!targetRow.nextSibling) {
+                wrap.appendChild(row);
+              }
+            } else {
+              // 向上移動：插入到目標row之前
+              wrap.insertBefore(row, targetRow);
+            }
+            
+            // 更新wrapRect，因為DOM結構改變了
+            wrapRect = wrap.getBoundingClientRect();
           }
-        }
-      } else {
-        // 如果沒有其他row，插入到grid-header之後
-        const gridHeader = wrap.querySelector('.grid-header');
-        if (gridHeader) {
-          wrap.insertBefore(spacer, gridHeader.nextSibling);
-        } else {
-          wrap.appendChild(spacer);
         }
       }
     }
@@ -636,40 +631,12 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       e.stopPropagation();
     }
     
-    // 移除spacer
-    if (spacer.parentNode === wrap) {
-      wrap.insertBefore(row, spacer);
-      spacer.remove();
-    } else {
-      // 如果spacer已經被移除，根據row的當前位置找到應該插入的地方
-      const allRows = Array.from(wrap.querySelectorAll('.cycle-row')).filter(r => r !== row);
-      const rowRect = row.getBoundingClientRect();
-      let insertBefore = null;
-      
-      for (const otherRow of allRows) {
-        const otherRect = otherRow.getBoundingClientRect();
-        if (rowRect.top < otherRect.top) {
-          insertBefore = otherRow;
-          break;
-        }
-      }
-      
-      if (insertBefore) {
-        wrap.insertBefore(row, insertBefore);
-      } else {
-        wrap.appendChild(row);
-      }
-    }
-    
-    // 清理所有spacer和placeholder（防止多餘的）
-    wrap.querySelectorAll('.row-spacer, .row-placeholder').forEach(p => p.remove());
-    
+    // 恢復row的樣式
     row.classList.remove('dragging');
-    row.style.position = '';
-    row.style.left = '';
-    row.style.top = '';
-    row.style.width = '';
+    row.style.transform = '';
+    row.style.opacity = '';
     row.style.zIndex = '';
+    row.style.transition = '';
     document.body.classList.remove('dragging-global');
     
     // 恢復滾動和文字選取
@@ -683,9 +650,6 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     
     // 移除所有事件監聽器
     cleanupListeners();
-
-    // 再次確保所有spacer和placeholder都被清理
-    wrap.querySelectorAll('.row-spacer, .row-placeholder').forEach(p => p.remove());
     
     // 依據目前 DOM 順序重排資料（只考慮cycle-row，確保沒有重複）
     const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
@@ -901,7 +865,7 @@ function renderSessionTable() {
       <div class="time-cell ${isBreathPhase ? 'active-phase' : ''}">
         <div class="main">
           ${breathIndicator}
-          <span>${secToMMSS(c.breath)}${breathAdded}</span>
+          <span>${i === t.cycles.length - 1 ? '--:--' : secToMMSS(c.breath) + breathAdded}</span>
         </div>
       </div>
       <div></div>
