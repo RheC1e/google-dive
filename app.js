@@ -516,38 +516,42 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     if (targetIndex !== lastTargetIndex) {
       lastTargetIndex = targetIndex;
       
-      // 使用requestAnimationFrame確保DOM操作順序正確
-      requestAnimationFrame(() => {
-        // 先移除placeholder（如果存在）
-        if (placeholder.parentNode === wrap) {
-          placeholder.remove();
+      // 先移除placeholder（如果存在）
+      if (placeholder.parentNode === wrap) {
+        placeholder.remove();
+      }
+      
+      // 重新獲取所有rows（因為DOM可能已改變）
+      const currentChildren = Array.from(wrap.children);
+      const currentRows = currentChildren.filter(el => el.classList.contains('cycle-row') && el !== row && el !== placeholder);
+      
+      // 移動placeholder到正確位置
+      if (targetIndex < currentRows.length && currentRows.length > 0) {
+        const targetRow = currentRows[targetIndex];
+        // 確保targetRow存在且不是placeholder
+        if (targetRow && targetRow !== placeholder) {
+          wrap.insertBefore(placeholder, targetRow);
         }
-        
-        // 重新獲取所有rows（因為DOM可能已改變）
-        const currentChildren = Array.from(wrap.children);
-        const currentRows = currentChildren.filter(el => el.classList.contains('cycle-row') && el !== row);
-        
-        // 移動placeholder到正確位置
-        if (targetIndex < currentRows.length) {
-          const targetRow = currentRows[targetIndex];
-          // 確保targetRow存在且不是placeholder
-          if (targetRow && targetRow !== placeholder) {
-            wrap.insertBefore(placeholder, targetRow);
-          }
-        } else {
-          // 插入到最後
-          const lastRow = currentRows[currentRows.length - 1];
-          if (lastRow && lastRow !== placeholder) {
+      } else if (currentRows.length > 0) {
+        // 插入到最後
+        const lastRow = currentRows[currentRows.length - 1];
+        if (lastRow && lastRow !== placeholder) {
+          // 確保lastRow.nextSibling不是placeholder
+          if (lastRow.nextSibling !== placeholder) {
             wrap.insertBefore(placeholder, lastRow.nextSibling);
-          } else if (wrap.firstChild && wrap.firstChild !== placeholder) {
-            // 如果沒有其他row，插入到第一個位置
-            wrap.insertBefore(placeholder, wrap.firstChild);
           } else {
-            // 最後的保險：直接append
-            wrap.appendChild(placeholder);
+            wrap.insertBefore(placeholder, lastRow);
           }
         }
-      });
+      } else {
+        // 如果沒有其他row，插入到第一個位置（但確保不是placeholder）
+        const firstChild = wrap.firstChild;
+        if (firstChild && firstChild !== placeholder) {
+          wrap.insertBefore(placeholder, firstChild);
+        } else {
+          wrap.appendChild(placeholder);
+        }
+      }
     }
   }
   function cleanupListeners() {
@@ -643,6 +647,38 @@ function renderHome() {
   drawRing(0, '#2a2f3b', '#3a4152');
   updateHomeUI();
   adjustSessionTableHeight();
+  
+  // 防止整頁滾動：只在TABLE區域允許滾動
+  if (window.innerWidth <= 768) {
+    const sessionTable = $('#sessionTableWrap');
+    const homeFixed = $('.home-fixed');
+    
+    // 防止在非TABLE區域的touchmove觸發整頁滾動
+    const preventPageScroll = (e) => {
+      const target = e.target;
+      // 如果觸摸點不在TABLE區域內，阻止默認行為
+      if (!sessionTable.contains(target) && !homeFixed.contains(target)) {
+        // 檢查是否在滾動容器內
+        let scrollable = target;
+        while (scrollable && scrollable !== document.body) {
+          const style = getComputedStyle(scrollable);
+          if (scrollable === sessionTable || 
+              (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+              scrollable.scrollHeight > scrollable.clientHeight) {
+            return; // 在可滾動容器內，允許滾動
+          }
+          scrollable = scrollable.parentElement;
+        }
+        // 不在可滾動容器內，阻止滾動
+        e.preventDefault();
+      }
+    };
+    
+    // 移除舊的監聽器（如果存在）
+    document.removeEventListener('touchmove', preventPageScroll, { passive: false });
+    // 添加新的監聽器
+    document.addEventListener('touchmove', preventPageScroll, { passive: false });
+  }
 }
 
 function togglePauseOrStart() {
