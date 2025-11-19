@@ -284,10 +284,10 @@ body{
     left:42px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 2. 左上開始鍵：X軸與左下對齊（考慮translate差異），往上移10px - 手機版專用 */
+  /* 2. 左上開始鍵：X軸與左下對齊（考慮translate差異），再往上移10px - 手機版專用 */
   .corner-btn.corner-top-left{
     top:auto !important;
-    bottom:150px !important;
+    bottom:160px !important;
     left:50px !important;
     --corner-translate:translate(-60%,-60%);
   }
@@ -297,10 +297,10 @@ body{
     right:42px !important;
     --corner-translate:translate(45%,45%);
   }
-  /* 4. 右上跳過鍵：X軸與右下對齊（考慮translate差異），往上移10px - 手機版專用 */
+  /* 4. 右上跳過鍵：X軸與右下對齊（考慮translate差異），再往上移10px - 手機版專用 */
   .corner-btn.corner-top-right{
     top:auto !important;
-    bottom:150px !important;
+    bottom:160px !important;
     right:50px !important;
     --corner-translate:translate(60%,-60%);
   }
