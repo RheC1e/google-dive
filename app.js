@@ -129,7 +129,7 @@ function adjustSessionTableHeight() {
   wrap.style.paddingBottom = `${bufferHeight}px`;
 }
 
-function scrollRowIntoView(row) {
+function scrollRowIntoView(row, makeSecondRow = false) {
   const wrap = $('#sessionTableWrap');
   if (!wrap || !row) return;
   // 確保wrap是可滾動的
@@ -145,9 +145,16 @@ function scrollRowIntoView(row) {
     const wrapHeight = wrap.clientHeight;
     const wrapScrollTop = wrap.scrollTop;
     
-    // 手機版和電腦版：直接滾動，讓row成為可見的第一行（在header下方）
-    let targetScrollTop = rowTop - headerHeight;
-    targetScrollTop = Math.max(0, targetScrollTop);
+    let targetScrollTop;
+    if (makeSecondRow && window.innerWidth > 768) {
+      // 電腦版：讓row成為第二行（在header下方，第一行下方）
+      targetScrollTop = rowTop - headerHeight - rowHeight;
+      targetScrollTop = Math.max(0, targetScrollTop);
+    } else {
+      // 手機版和電腦版（4倍數規則）：讓row成為可見的第一行（在header下方）
+      targetScrollTop = rowTop - headerHeight;
+      targetScrollTop = Math.max(0, targetScrollTop);
+    }
     wrap.scrollTo({ 
       top: targetScrollTop,
       behavior: 'smooth' 
@@ -797,13 +804,22 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 每跑到4倍數的循環時，將其減一行自動滾動成第一行 (4x-1)設成第一行
-    if (session) {
-      // 當進行到第4n個循環時（index = 4n-1, n=1,2,3...），滾動到第(4n-1)行（i = 4n-2）
-      // 例如：進行到第4個循環（index=3）時，滾動到第3行（i=2）
-      // 例如：進行到第8個循環（index=7）時，滾動到第7行（i=6）
-      // 邏輯：當 index % 4 === 3 且 i === index - 1 時滾動
+    // 手機版：進行到第三行時，才將第二行滾動到第一行
+    if (session && window.innerWidth <= 768) {
+      // 當進行到第i+1個循環時，才滾動到第i行
+      if (session.index === i + 1) {
+        activeRowEl = row;
+      }
+    }
+    // 電腦版：每跑到4倍數的循環時，將其減一行自動滾動成第一行 (4x-1)設成第一行
+    // 以及暫停後繼續時，讓當下循環變成第二行
+    else if (session && window.innerWidth > 768) {
+      // 規則1：當進行到第4n個循環時（index = 4n-1, n=1,2,3...），滾動到第(4n-1)行（i = 4n-2）
       if (session.index % 4 === 3 && session.index === i + 1) {
+        activeRowEl = row;
+      }
+      // 規則2：暫停後繼續時，讓當下循環變成第二行（當前行是第i行，讓它成為第二行）
+      else if (session.index === i && session.justResumed) {
         activeRowEl = row;
       }
     }
@@ -842,7 +858,13 @@ function renderSessionTable() {
   if (activeRowEl) {
     // 使用requestAnimationFrame確保DOM已完全渲染
     requestAnimationFrame(() => {
-      scrollRowIntoView(activeRowEl);
+      // 電腦版：如果是暫停後繼續，讓當下行成為第二行
+      const makeSecondRow = state.session && state.session.justResumed && window.innerWidth > 768;
+      scrollRowIntoView(activeRowEl, makeSecondRow);
+      // 清除 justResumed 標記
+      if (state.session && state.session.justResumed) {
+        state.session.justResumed = false;
+      }
     });
   }
 }
@@ -875,8 +897,13 @@ function startSession() {
 
 function togglePause() {
   if (!state.session) return;
+  const wasPaused = state.session.paused;
   state.session.paused = !state.session.paused;
   state.session.lastTick = performance.now();
+  // 電腦版：如果從暫停變為繼續，設置標記以觸發自動滾動
+  if (wasPaused && !state.session.paused && window.innerWidth > 768) {
+    state.session.justResumed = true;
+  }
   updateHomeUI();
 }
 function skipPhase() {
