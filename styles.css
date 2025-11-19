@@ -260,6 +260,14 @@ body{
   right:33.5px;
   --corner-translate:translate(75%,-75%);
 }
+@media (min-width:769px){
+  .corner-btn.corner-top-left{
+    top:45px;
+  }
+  .corner-btn.corner-top-right{
+    top:45px;
+  }
+}
 .corner-btn.corner-bottom-right{
   bottom:var(--corner-offset);
   right:var(--corner-offset);

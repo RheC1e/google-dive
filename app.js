@@ -145,30 +145,39 @@ function scrollRowIntoView(row) {
     const wrapHeight = wrap.clientHeight;
     const wrapScrollTop = wrap.scrollTop;
     
-    // 計算目標位置：讓row顯示在header下方，並確保可以看到完整的row
-    // 目標是讓row的頂部對齊header底部，或者如果row在視窗內就不滾動
-    const rowBottom = rowTop + rowHeight;
-    const visibleTop = wrapScrollTop + headerHeight;
-    const visibleBottom = wrapScrollTop + wrapHeight;
+    const isMobile = window.innerWidth <= 768;
     
-    // 如果row完全在可見區域內（考慮header），不需要滾動
-    if (rowTop >= visibleTop && rowBottom <= visibleBottom) {
-      return;
-    }
-    
-    // 如果row在header下方但不可見，滾動到讓row顯示在header下方
-    let targetScrollTop = rowTop - headerHeight;
-    
-    // 確保不會滾動到負數
-    targetScrollTop = Math.max(0, targetScrollTop);
-    
-    // 如果目標位置與當前位置差異較大，才滾動
-    const diff = Math.abs(wrapScrollTop - targetScrollTop);
-    if (diff > rowHeight * 0.3) {
+    if (isMobile) {
+      // 手機版：讓row成為可見的第一行（在header下方）
+      let targetScrollTop = rowTop - headerHeight;
+      targetScrollTop = Math.max(0, targetScrollTop);
       wrap.scrollTo({ 
         top: targetScrollTop,
         behavior: 'smooth' 
       });
+    } else {
+      // 電腦版：讓row顯示在header下方，如果已經可見就不滾動
+      const rowBottom = rowTop + rowHeight;
+      const visibleTop = wrapScrollTop + headerHeight;
+      const visibleBottom = wrapScrollTop + wrapHeight;
+      
+      // 如果row完全在可見區域內（考慮header），不需要滾動
+      if (rowTop >= visibleTop && rowBottom <= visibleBottom) {
+        return;
+      }
+      
+      // 如果row在header下方但不可見，滾動到讓row顯示在header下方
+      let targetScrollTop = rowTop - headerHeight;
+      targetScrollTop = Math.max(0, targetScrollTop);
+      
+      // 如果目標位置與當前位置差異較大，才滾動
+      const diff = Math.abs(wrapScrollTop - targetScrollTop);
+      if (diff > rowHeight * 0.3) {
+        wrap.scrollTo({ 
+          top: targetScrollTop,
+          behavior: 'smooth' 
+        });
+      }
     }
   }, 100);
 }
@@ -815,12 +824,10 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 手機版：自動滾動觸發更早（當第3行結束時就要跳到第4行，因為只能顯示3行）
+    // 手機版：每跑三個循環，就要讓下一個循環滾動到變成他是第一行
     if (session && window.innerWidth <= 768) {
-      // 如果當前循環是第3個（index=2），就要滾動到第4個（i=3）
-      // 如果當前循環是第4個（index=3），就要滾動到第4個（i=3）
-      // 邏輯：當index === i 或 index === i - 1時滾動（確保當前行或下一行可見）
-      if (session.index === i || session.index === i - 1) {
+      // 當進行到第i個循環時，就滾動到第i行，讓它成為可見的第一行
+      if (session.index === i) {
         activeRowEl = row;
       }
     } else if (isActiveCycle) {
