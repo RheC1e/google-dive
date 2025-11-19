@@ -145,40 +145,13 @@ function scrollRowIntoView(row) {
     const wrapHeight = wrap.clientHeight;
     const wrapScrollTop = wrap.scrollTop;
     
-    const isMobile = window.innerWidth <= 768;
-    
-    if (isMobile) {
-      // 手機版：讓row成為可見的第一行（在header下方）
-      let targetScrollTop = rowTop - headerHeight;
-      targetScrollTop = Math.max(0, targetScrollTop);
-      wrap.scrollTo({ 
-        top: targetScrollTop,
-        behavior: 'smooth' 
-      });
-    } else {
-      // 電腦版：讓row顯示在header下方，如果已經可見就不滾動
-      const rowBottom = rowTop + rowHeight;
-      const visibleTop = wrapScrollTop + headerHeight;
-      const visibleBottom = wrapScrollTop + wrapHeight;
-      
-      // 如果row完全在可見區域內（考慮header），不需要滾動
-      if (rowTop >= visibleTop && rowBottom <= visibleBottom) {
-        return;
-      }
-      
-      // 如果row在header下方但不可見，滾動到讓row顯示在header下方
-      let targetScrollTop = rowTop - headerHeight;
-      targetScrollTop = Math.max(0, targetScrollTop);
-      
-      // 如果目標位置與當前位置差異較大，才滾動
-      const diff = Math.abs(wrapScrollTop - targetScrollTop);
-      if (diff > rowHeight * 0.3) {
-        wrap.scrollTo({ 
-          top: targetScrollTop,
-          behavior: 'smooth' 
-        });
-      }
-    }
+    // 手機版和電腦版：直接滾動，讓row成為可見的第一行（在header下方）
+    let targetScrollTop = rowTop - headerHeight;
+    targetScrollTop = Math.max(0, targetScrollTop);
+    wrap.scrollTo({ 
+      top: targetScrollTop,
+      behavior: 'smooth' 
+    });
   }, 100);
 }
 
@@ -824,12 +797,13 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 手機版和電腦版：再晚一行再跳，例如進行到第三行時，才將第二行滾動到第一行
+    // 每跑到4倍數的循環時，將其減一行自動滾動成第一行 (4x-1)設成第一行
     if (session) {
-      // 當進行到第i+1個循環時，才滾動到第i行，讓它成為可見的第一行
-      // 例如：進行到第3個循環（index=2）時，滾動到第2行（i=1）
-      // 例如：進行到第5個循環（index=4）時，滾動到第4行（i=3）
-      if (session.index === i + 1) {
+      // 當進行到第4n個循環時（index = 4n-1, n=1,2,3...），滾動到第(4n-1)行（i = 4n-2）
+      // 例如：進行到第4個循環（index=3）時，滾動到第3行（i=2）
+      // 例如：進行到第8個循環（index=7）時，滾動到第7行（i=6）
+      // 邏輯：當 index % 4 === 3 且 i === index - 1 時滾動
+      if (session.index % 4 === 3 && session.index === i + 1) {
         activeRowEl = row;
       }
     }
