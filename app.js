@@ -173,7 +173,14 @@ window.addEventListener('orientationchange', adjustSessionTableHeight);
 // Navigation & Drawer
 const view = $('#view');
 const drawer = $('#drawer');
-$('#menuBtn').addEventListener('click', () => {
+const drawerBackdrop = $('#drawerBackdrop');
+
+function closeDrawer() {
+  drawer.classList.remove('open');
+  drawerBackdrop.classList.remove('active');
+}
+
+function openDrawer() {
   // 如果正在拖曳，先結束拖曳
   const draggingEl = document.querySelector('.cycle-row.dragging');
   if (draggingEl) {
@@ -194,13 +201,31 @@ $('#menuBtn').addEventListener('click', () => {
       window.dispatchEvent(mouseEvent);
     }
   }
-  drawer.classList.toggle('open');
+  drawer.classList.add('open');
+  drawerBackdrop.classList.add('active');
+}
+
+$('#menuBtn').addEventListener('click', () => {
+  if (drawer.classList.contains('open')) {
+    closeDrawer();
+  } else {
+    openDrawer();
+  }
 });
+
+// 點擊 backdrop 關閉選單
+drawerBackdrop.addEventListener('click', (e) => {
+  if (e.target === drawerBackdrop) {
+    closeDrawer();
+  }
+});
+
+// 點擊選單內的項目時關閉選單
 $$('.drawer-item').forEach((btn) => {
   btn.addEventListener('click', () => {
     const r = btn.getAttribute('data-route');
     navigate(r);
-    drawer.classList.remove('open');
+    closeDrawer();
   });
 });
 

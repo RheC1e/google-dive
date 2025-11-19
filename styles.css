@@ -64,6 +64,17 @@ body{
   transition:transform .2s ease;z-index:100;box-shadow: 2px 0 12px rgba(0,0,0,.4);
 }
 .drawer.open{transform:translateX(0)}
+.drawer-backdrop{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:99;opacity:0;pointer-events:none;
+  transition:opacity .2s ease;
+}
+.drawer-backdrop.active{
+  opacity:1;pointer-events:auto;
+}
+.drawer-backdrop.active ~ .drawer{
+  pointer-events:auto;
+}
 .drawer-header{padding:14px 16px;color:var(--muted);border-bottom:1px solid var(--line)}
 .drawer-item{
   display:flex;align-items:center;gap:10px;width:100%;
@@ -256,8 +267,6 @@ body{
     width:56px;
     height:56px;
     font-size:15px;
-    --corner-offset:20px;
-    --corner-top-offset:50px;
   }
   #plus10Btn{font-size:11px;}
   .corner-btn .corner-label{
@@ -265,17 +274,29 @@ body{
     transform:translateY(-1px);
   }
   #plus10Btn .corner-label{font-size:16px;font-weight:700;transform:translateY(0);}
+  /* 左上開始鍵：往右移動，往上稍微移一點 */
   .corner-btn.corner-top-left{
-    --corner-translate:translate(-65%,-65%);
+    top:45px;
+    left:28px;
+    --corner-translate:translate(-60%,-60%);
   }
+  /* 右上跳過鍵：往左移動，往上稍微移一點 */
   .corner-btn.corner-top-right{
-    --corner-translate:translate(65%,-65%);
+    top:45px;
+    right:28px;
+    --corner-translate:translate(60%,-60%);
   }
-  .corner-btn.corner-bottom-right{
-    --corner-translate:translate(50%,50%);
-  }
+  /* 左下肺部鍵：往右移動，往上移 */
   .corner-btn.corner-bottom-left{
-    --corner-translate:translate(-50%,50%);
+    bottom:28px;
+    left:28px;
+    --corner-translate:translate(-45%,45%);
+  }
+  /* 右下加秒鍵：往左移動，往上移 */
+  .corner-btn.corner-bottom-right{
+    bottom:28px;
+    right:28px;
+    --corner-translate:translate(45%,45%);
   }
 }
 .home .controls.primary{
