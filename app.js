@@ -1035,8 +1035,8 @@ function drawRing(progress, color, bg, markFraction = null) {
   const w = c.width;
   const h = c.height;
   ctx.clearRect(0, 0, w, h);
-  // 縮小圓圈：增加減少的數值
-  const r = Math.min(w, h) / 2 - 25;
+  // 縮小圓圈：增加減少的數值（圓圈更小但厚度不變）
+  const r = Math.min(w, h) / 2 - 30;
   const cx = w / 2;
   const cy = h / 2;
   // background ring - 大幅放大圓圈框的厚度

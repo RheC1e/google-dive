@@ -154,7 +154,7 @@ body{
 @media (max-width:768px){
   .timer-wrapper{
     margin:1px 0;
-    width:min(60vw,150px);
+    width:min(55vw,140px);
   }
 }
 .home .timer{
@@ -280,9 +280,9 @@ body{
     left:42px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 2. 左上開始鍵：對齊左下按鈕的y軸（使用相同的bottom值+按鈕高度） */
+  /* 2. 左上開始鍵：再往上移，直到按鈕最上緣與計時器最上緣貼齊 */
   .corner-btn.corner-top-left{
-    bottom:91px;
+    top:0px;
     left:42px;
     --corner-translate:translate(-60%,-60%);
   }
@@ -292,9 +292,9 @@ body{
     right:42px;
     --corner-translate:translate(45%,45%);
   }
-  /* 4. 右上跳過鍵：對齊右下按鈕的Y軸（使用相同的bottom值+按鈕高度） */
+  /* 3. 右上跳過鍵：再往上移，直到按鈕最上緣與計時器最上緣貼齊 */
   .corner-btn.corner-top-right{
-    bottom:91px;
+    top:0px;
     right:42px;
     --corner-translate:translate(60%,-60%);
   }
@@ -356,7 +356,7 @@ body{
 .time{font-size:44px;font-weight:800}
 @media (max-width:768px){
   .time{font-size:42px}
-  .phase{font-size:16px}
+  .phase{font-size:19px}
 }
 .phase{margin-top:4px;color:var(--muted)}
 .controls{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0;flex-wrap:wrap}
@@ -736,6 +736,14 @@ button:disabled{opacity:.5;pointer-events:none}
 .session-table .grid-header > div,
 .session-table .cycle-row > div{
   display:flex;align-items:center;justify-content:center;
+}
+@media (max-width:768px){
+  .session-table .grid-header,
+  .session-table .cycle-row{
+    grid-template-columns:30px 1fr 1fr 40px;
+    column-gap:20px;
+    padding:0 16px;
+  }
 }
 
 
