@@ -603,16 +603,26 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   ghost.style.width = `${rowRect.width}px`;
   ghost.style.zIndex = '1000';
   ghost.style.margin = '0';
+  ghost.style.willChange = 'top';
   document.body.appendChild(ghost);
   document.body.classList.add('dragging-global');
 
   const getClientY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
 
-  function onMove(e) {
-    e.preventDefault();
-    const clientY = getClientY(e);
-    const targetTop = clientY - grabOffset;
+  let currentClientY = startClientY;
+  let rafId = null;
+  let lastSwapTime = 0;
+  const SWAP_THROTTLE = 50; // ms
+
+  function update() {
+    const targetTop = currentClientY - grabOffset;
     ghost.style.top = `${targetTop}px`;
+
+    const now = Date.now();
+    if (now - lastSwapTime < SWAP_THROTTLE) {
+      rafId = requestAnimationFrame(update);
+      return;
+    }
 
     const ghostCenterY = targetTop + rowHeight / 2;
 
@@ -624,7 +634,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       const center = rect.top + rect.height / 2;
       if (ghostCenterY < center) {
         wrap.insertBefore(placeholder, prev);
-        return;
+        lastSwapTime = now;
       }
     }
 
@@ -636,12 +646,23 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       if (ghostCenterY > center) {
         // Insert after next (insertBefore next's sibling)
         wrap.insertBefore(placeholder, next.nextElementSibling);
-        return;
+        lastSwapTime = now;
       }
     }
+
+    rafId = requestAnimationFrame(update);
+  }
+
+  // Start the animation loop
+  rafId = requestAnimationFrame(update);
+
+  function onMove(e) {
+    e.preventDefault();
+    currentClientY = getClientY(e);
   }
 
   function cleanup() {
+    if (rafId) cancelAnimationFrame(rafId);
     window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onUp, true);
     window.removeEventListener('pointercancel', onUp, true);
@@ -661,6 +682,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     // Animate ghost back to placeholder position
     const destRect = placeholder.getBoundingClientRect();
 
+    ghost.style.willChange = 'auto';
     ghost.style.transition = 'all 0.2s ease';
     ghost.style.left = `${destRect.left}px`;
     ghost.style.top = `${destRect.top}px`;
@@ -676,6 +698,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
         ghost.style.zIndex = '';
         ghost.style.margin = '';
         ghost.style.transition = '';
+        ghost.style.willChange = '';
 
         if (placeholder.parentNode) {
           wrap.insertBefore(ghost, placeholder);

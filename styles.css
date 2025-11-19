@@ -766,10 +766,11 @@ body {
 
 .dragging {
   opacity: 0.9;
-  transform: scale(1.02);
+  transform: scale(1.02) translate3d(0, 0, 0);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   background: var(--bg-surface);
   z-index: 100;
+  will-change: top, left;
 }
 
 .handle {
@@ -777,6 +778,7 @@ body {
   padding: 8px;
   color: var(--text-muted);
   font-size: 20px;
+  touch-action: none;
 }
 
 .trash {
