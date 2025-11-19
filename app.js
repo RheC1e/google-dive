@@ -1035,7 +1035,8 @@ function drawRing(progress, color, bg, markFraction = null) {
   const w = c.width;
   const h = c.height;
   ctx.clearRect(0, 0, w, h);
-  const r = Math.min(w, h) / 2 - 12;
+  // 縮小圓圈：增加減少的數值
+  const r = Math.min(w, h) / 2 - 18;
   const cx = w / 2;
   const cy = h / 2;
   // background ring

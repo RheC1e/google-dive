@@ -154,7 +154,7 @@ body{
 @media (max-width:768px){
   .timer-wrapper{
     margin:1px 0;
-    width:min(65vw,160px);
+    width:min(60vw,150px);
   }
 }
 .home .timer{
@@ -274,28 +274,28 @@ body{
     transform:translateY(-1px);
   }
   #plus10Btn .corner-label{font-size:16px;font-weight:700;transform:translateY(0);}
-  /* 左上開始鍵：往右移動，往上稍微移一點 */
+  /* 左上開始鍵：再往右移 */
   .corner-btn.corner-top-left{
     top:45px;
-    left:28px;
+    left:35px;
     --corner-translate:translate(-60%,-60%);
   }
-  /* 右上跳過鍵：往左移動，往上稍微移一點 */
+  /* 右上跳過鍵：再往左移 */
   .corner-btn.corner-top-right{
     top:45px;
-    right:28px;
+    right:35px;
     --corner-translate:translate(60%,-60%);
   }
-  /* 左下肺部鍵：往右移動，往上移 */
+  /* 左下肺部鍵：再往右移 */
   .corner-btn.corner-bottom-left{
     bottom:28px;
-    left:28px;
+    left:35px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 右下加秒鍵：往左移動，往上移 */
+  /* 右下加秒鍵：再往左移 */
   .corner-btn.corner-bottom-right{
     bottom:28px;
-    right:28px;
+    right:35px;
     --corner-translate:translate(45%,45%);
   }
 }
@@ -355,8 +355,8 @@ body{
 .timer-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .time{font-size:44px;font-weight:800}
 @media (max-width:768px){
-  .time{font-size:36px}
-  .phase{font-size:13px}
+  .time{font-size:42px}
+  .phase{font-size:16px}
 }
 .phase{margin-top:4px;color:var(--muted)}
 .controls{display:flex;gap:10px;align-items:center;justify-content:center;margin:10px 0;flex-wrap:wrap}
