@@ -286,7 +286,7 @@ body{
   }
   /* 2. 左上開始鍵：再往上移 */
   .corner-btn.corner-top-left{
-    bottom:105px;
+    bottom:112px;
     left:42px;
     --corner-translate:translate(-60%,-60%);
   }
@@ -298,7 +298,7 @@ body{
   }
   /* 4. 右上跳過鍵：再往上移 */
   .corner-btn.corner-top-right{
-    bottom:105px;
+    bottom:112px;
     right:42px;
     --corner-translate:translate(60%,-60%);
   }
