@@ -284,22 +284,24 @@ body{
     left:42px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 2. 左上開始鍵：再往上移 */
+  /* 2. 左上開始鍵：再往上移 - 手機版專用 */
   .corner-btn.corner-top-left{
-    bottom:112px;
-    left:42px;
+    top:auto !important;
+    bottom:112px !important;
+    left:42px !important;
     --corner-translate:translate(-60%,-60%);
   }
-  /* 3. 右下加秒鍵：再往左移，也再往上移 */
+  /* 3. 右下加秒鍵：再往左移，也再往上移 - 手機版專用 */
   .corner-btn.corner-bottom-right{
-    bottom:35px;
-    right:42px;
+    bottom:35px !important;
+    right:42px !important;
     --corner-translate:translate(45%,45%);
   }
-  /* 4. 右上跳過鍵：再往上移 */
+  /* 4. 右上跳過鍵：再往上移 - 手機版專用 */
   .corner-btn.corner-top-right{
-    bottom:112px;
-    right:42px;
+    top:auto !important;
+    bottom:112px !important;
+    right:42px !important;
     --corner-translate:translate(60%,-60%);
   }
 }
