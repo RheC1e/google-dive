@@ -809,7 +809,16 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    if (isActiveCycle) activeRowEl = row;
+    // 手機版：自動滾動觸發再早一個循環（前一個循環時就滾動）
+    if (session && window.innerWidth <= 768) {
+      if (session.index === i + 1) {
+        activeRowEl = row;
+      } else if (isActiveCycle) {
+        activeRowEl = row;
+      }
+    } else if (isActiveCycle) {
+      activeRowEl = row;
+    }
 
     const holdAdded = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
     const breathAdded = session && session.breathAddedSeconds[i] ? ` + ${session.breathAddedSeconds[i]}` : '';
