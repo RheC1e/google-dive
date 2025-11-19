@@ -229,12 +229,12 @@ body{
 #plus10Btn{background:#4a5568;font-size:13px;font-weight:600;}
 .corner-btn.corner-top-left{
   top:var(--corner-top-offset);
-  left:var(--corner-offset);
+  left:33.5px;
   --corner-translate:translate(-75%,-75%);
 }
 .corner-btn.corner-top-right{
   top:var(--corner-top-offset);
-  right:var(--corner-offset);
+  right:33.5px;
   --corner-translate:translate(75%,-75%);
 }
 .corner-btn.corner-bottom-right{
@@ -284,10 +284,10 @@ body{
     left:42px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 2. 左上開始鍵：X軸與左下對齊（考慮translate差異），再往上移10px - 手機版專用 */
+  /* 2. 左上開始鍵：X軸與左下對齊（考慮translate差異），再往上移7px - 手機版專用 */
   .corner-btn.corner-top-left{
     top:auto !important;
-    bottom:160px !important;
+    bottom:167px !important;
     left:50px !important;
     --corner-translate:translate(-60%,-60%);
   }
@@ -297,10 +297,10 @@ body{
     right:42px !important;
     --corner-translate:translate(45%,45%);
   }
-  /* 4. 右上跳過鍵：X軸與右下對齊（考慮translate差異），再往上移10px - 手機版專用 */
+  /* 4. 右上跳過鍵：X軸與右下對齊（考慮translate差異），再往上移7px - 手機版專用 */
   .corner-btn.corner-top-right{
     top:auto !important;
-    bottom:160px !important;
+    bottom:167px !important;
     right:50px !important;
     --corner-translate:translate(60%,-60%);
   }
