@@ -824,10 +824,11 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 手機版：每跑三個循環，就要讓下一個循環滾動到變成他是第一行
+    // 手機版：再晚一行再跳，例如進行到第三行時，才將第二行滾動到第一行
     if (session && window.innerWidth <= 768) {
-      // 當進行到第i個循環時，就滾動到第i行，讓它成為可見的第一行
-      if (session.index === i) {
+      // 當進行到第i+1個循環時，才滾動到第i行，讓它成為可見的第一行
+      // 例如：進行到第3個循環（index=2）時，滾動到第2行（i=1）
+      if (session.index === i + 1) {
         activeRowEl = row;
       }
     } else if (isActiveCycle) {
