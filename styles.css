@@ -174,7 +174,8 @@ body{
 }
 @media (min-width:769px){
   .timer-wrapper{
-    margin-top:20px;
+    margin-top:20px !important;
+    margin-bottom:2px;
   }
 }
 @media (max-width:768px){

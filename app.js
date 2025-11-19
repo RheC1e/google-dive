@@ -817,12 +817,10 @@ function renderSessionTable() {
     if (isActiveCycle) row.classList.add('active-row');
     // 手機版：自動滾動觸發更早（當第3行結束時就要跳到第4行，因為只能顯示3行）
     if (session && window.innerWidth <= 768) {
-      // 如果當前循環是第2個（index=1），就要滾動到第3個（i=2）
       // 如果當前循環是第3個（index=2），就要滾動到第4個（i=3）
-      // 以此類推：當index === i - 1時滾動（提前2行）
-      if (session.index === i - 1) {
-        activeRowEl = row;
-      } else if (isActiveCycle) {
+      // 如果當前循環是第4個（index=3），就要滾動到第4個（i=3）
+      // 邏輯：當index === i 或 index === i - 1時滾動（確保當前行或下一行可見）
+      if (session.index === i || session.index === i - 1) {
         activeRowEl = row;
       }
     } else if (isActiveCycle) {
