@@ -274,29 +274,29 @@ body{
     transform:translateY(-1px);
   }
   #plus10Btn .corner-label{font-size:16px;font-weight:700;transform:translateY(0);}
-  /* 左上開始鍵：再往右移 */
-  .corner-btn.corner-top-left{
-    top:45px;
-    left:35px;
-    --corner-translate:translate(-60%,-60%);
-  }
-  /* 右上跳過鍵：再往左移 */
-  .corner-btn.corner-top-right{
-    top:45px;
-    right:35px;
-    --corner-translate:translate(60%,-60%);
-  }
-  /* 左下肺部鍵：再往右移 */
+  /* 1. 左下肺部鍵：再往右移，也再往上移 */
   .corner-btn.corner-bottom-left{
-    bottom:28px;
-    left:35px;
+    bottom:35px;
+    left:42px;
     --corner-translate:translate(-45%,45%);
   }
-  /* 右下加秒鍵：再往左移 */
+  /* 2. 左上開始鍵：對齊左下按鈕的y軸（使用相同的bottom值+按鈕高度） */
+  .corner-btn.corner-top-left{
+    bottom:91px;
+    left:42px;
+    --corner-translate:translate(-60%,-60%);
+  }
+  /* 3. 右下加秒鍵：再往左移，也再往上移 */
   .corner-btn.corner-bottom-right{
-    bottom:28px;
-    right:35px;
+    bottom:35px;
+    right:42px;
     --corner-translate:translate(45%,45%);
+  }
+  /* 4. 右上跳過鍵：對齊右下按鈕的Y軸（使用相同的bottom值+按鈕高度） */
+  .corner-btn.corner-top-right{
+    bottom:91px;
+    right:42px;
+    --corner-translate:translate(60%,-60%);
   }
 }
 .home .controls.primary{

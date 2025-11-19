@@ -1036,11 +1036,11 @@ function drawRing(progress, color, bg, markFraction = null) {
   const h = c.height;
   ctx.clearRect(0, 0, w, h);
   // 縮小圓圈：增加減少的數值
-  const r = Math.min(w, h) / 2 - 18;
+  const r = Math.min(w, h) / 2 - 25;
   const cx = w / 2;
   const cy = h / 2;
-  // background ring
-  ctx.lineWidth = 18;
+  // background ring - 大幅放大圓圈框的厚度
+  ctx.lineWidth = 28;
   ctx.strokeStyle = bg;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -1051,7 +1051,8 @@ function drawRing(progress, color, bg, markFraction = null) {
   const end = start + tau * progress;
   const hasMark = typeof markFraction === 'number' && !Number.isNaN(markFraction);
   const clampedMark = hasMark ? Math.max(0, Math.min(1, markFraction)) : null;
-  ctx.lineWidth = 18;
+  // 進度條也使用相同的粗度
+  ctx.lineWidth = 28;
   if (progress <= 0) return;
   // 確保progress不超過1（圓圈最多100%）
   const clampedProgress = Math.min(1, progress);
