@@ -174,7 +174,7 @@ body{
 }
 @media (min-width:769px){
   .timer-wrapper{
-    margin-top:12px;
+    margin-top:20px;
   }
 }
 @media (max-width:768px){
@@ -600,8 +600,9 @@ body{
     top:auto;
   }
   .session-table{
-    max-height:none;
-    overflow:visible;
+    max-height:400px;
+    overflow-y:auto;
+    overflow-x:hidden;
   }
 }
 .row-placeholder{

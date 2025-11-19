@@ -97,9 +97,15 @@ function adjustSessionTableHeight() {
   const fixed = $('.home-fixed');
   if (!wrap || !fixed) return;
   if (window.innerWidth > 768) {
-    wrap.style.maxHeight = '';
-    wrap.style.overflowY = '';
-    wrap.style.webkitOverflowScrolling = '';
+    // 電腦版：設定最大高度和滾動，讓TABLE可以滾動
+    const viewportHeight = window.innerHeight;
+    const fixedRect = fixed.getBoundingClientRect();
+    const usedHeight = fixedRect.bottom;
+    const available = Math.max(300, viewportHeight - usedHeight - 20);
+    wrap.style.maxHeight = `${available}px`;
+    wrap.style.overflowY = 'auto';
+    wrap.style.webkitOverflowScrolling = 'touch';
+    wrap.style.minHeight = '0';
     return;
   }
   const fixedRect = fixed.getBoundingClientRect();
@@ -809,14 +815,18 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 手機版：自動滾動觸發再早一個循環（前一個循環時就滾動）
+    // 手機版：自動滾動觸發更早（當第3行結束時就要跳到第4行，因為只能顯示3行）
     if (session && window.innerWidth <= 768) {
-      if (session.index === i + 1) {
+      // 如果當前循環是第2個（index=1），就要滾動到第3個（i=2）
+      // 如果當前循環是第3個（index=2），就要滾動到第4個（i=3）
+      // 以此類推：當index === i - 1時滾動（提前2行）
+      if (session.index === i - 1) {
         activeRowEl = row;
       } else if (isActiveCycle) {
         activeRowEl = row;
       }
     } else if (isActiveCycle) {
+      // 電腦版也要自動滾動
       activeRowEl = row;
     }
 
