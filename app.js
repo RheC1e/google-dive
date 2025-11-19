@@ -174,6 +174,26 @@ window.addEventListener('orientationchange', adjustSessionTableHeight);
 const view = $('#view');
 const drawer = $('#drawer');
 $('#menuBtn').addEventListener('click', () => {
+  // 如果正在拖曳，先結束拖曳
+  const draggingEl = document.querySelector('.cycle-row.dragging');
+  if (draggingEl) {
+    // 觸發 pointerup 事件來結束拖曳（使用 capture phase 確保能被捕獲）
+    try {
+      const endEvent = new PointerEvent('pointerup', {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1
+      });
+      window.dispatchEvent(endEvent);
+    } catch (e) {
+      // 如果 PointerEvent 不可用，使用 MouseEvent
+      const mouseEvent = new MouseEvent('mouseup', {
+        bubbles: true,
+        cancelable: true
+      });
+      window.dispatchEvent(mouseEvent);
+    }
+  }
   drawer.classList.toggle('open');
 });
 $$('.drawer-item').forEach((btn) => {
@@ -526,6 +546,7 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   ghost.style.width = `${rowRect.width}px`;
   ghost.style.pointerEvents = 'none';
   ghost.style.margin = '0';
+  ghost.style.zIndex = '50';
   document.body.appendChild(ghost);
   document.body.classList.add('dragging-global');
 
