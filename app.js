@@ -824,16 +824,14 @@ function renderSessionTable() {
     const isHoldPhase = session && session.phase === 'hold' && session.index === i;
     const isBreathPhase = session && session.phase === 'breath' && session.index === i;
     if (isActiveCycle) row.classList.add('active-row');
-    // 手機版：再晚一行再跳，例如進行到第三行時，才將第二行滾動到第一行
-    if (session && window.innerWidth <= 768) {
+    // 手機版和電腦版：再晚一行再跳，例如進行到第三行時，才將第二行滾動到第一行
+    if (session) {
       // 當進行到第i+1個循環時，才滾動到第i行，讓它成為可見的第一行
       // 例如：進行到第3個循環（index=2）時，滾動到第2行（i=1）
+      // 例如：進行到第5個循環（index=4）時，滾動到第4行（i=3）
       if (session.index === i + 1) {
         activeRowEl = row;
       }
-    } else if (isActiveCycle) {
-      // 電腦版也要自動滾動
-      activeRowEl = row;
     }
 
     const holdAdded = session && session.addedSeconds[i] ? ` + ${session.addedSeconds[i]}` : '';
