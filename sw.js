@@ -1,4 +1,4 @@
-const CACHE = 'dive-trainer-cache-v2'; // bump version to avoid old cached JS
+const CACHE = 'dive-trainer-cache-v5'; // bump version to avoid old cached JS
 const ASSETS = [
   './',
   './index.html',

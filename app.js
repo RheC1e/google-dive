@@ -83,6 +83,76 @@ function setCornerButtonLabel(btn, symbol) {
   label.textContent = symbol;
 }
 
+// --- Wake Lock & Audio Utilities ---
+let wakeLock = null;
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.error('Wake Lock error:', err);
+    }
+  }
+}
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release().catch(() => { });
+    wakeLock = null;
+  }
+}
+// Re-acquire wake lock when visibility changes (if session running)
+document.addEventListener('visibilitychange', async () => {
+  if (state.session && !state.session.paused && document.visibilityState === 'visible') {
+    requestWakeLock();
+  }
+});
+
+// Audio Context
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playTone(freq, type, duration, vol = 0.1) {
+  if (!audioCtx) initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playStartSound() {
+  playTone(440, 'sine', 0.1);
+  setTimeout(() => playTone(880, 'sine', 0.2), 100);
+}
+
+function playStopSound() {
+  playTone(440, 'sine', 0.1);
+  setTimeout(() => playTone(220, 'sine', 0.3), 100);
+}
+
+function playPhaseChangeSound(phase) {
+  if (phase === 'hold') {
+    // Prepare -> Hold or Breath -> Hold (Deep tone)
+    playTone(300, 'sine', 0.3, 0.2);
+  } else if (phase === 'breath') {
+    // Hold -> Breath (Bright tone)
+    playTone(600, 'sine', 0.1);
+    setTimeout(() => playTone(800, 'sine', 0.2), 100);
+  }
+}
+
 // App State
 const state = {
   data: loadData(),
@@ -93,40 +163,7 @@ const state = {
 };
 
 function adjustSessionTableHeight() {
-  const wrap = $('#sessionTableWrap');
-  const fixed = $('.home-fixed');
-  if (!wrap || !fixed) return;
-  if (window.innerWidth > 768) {
-    // 電腦版：設定最大高度和滾動，讓TABLE可以滾動
-    const viewportHeight = window.innerHeight;
-    const fixedRect = fixed.getBoundingClientRect();
-    const usedHeight = fixedRect.bottom;
-    const available = Math.max(300, viewportHeight - usedHeight - 20);
-    wrap.style.maxHeight = `${available}px`;
-    wrap.style.overflowY = 'auto';
-    wrap.style.webkitOverflowScrolling = 'touch';
-    wrap.style.minHeight = '0';
-    return;
-  }
-  const fixedRect = fixed.getBoundingClientRect();
-  // 計算可用高度：確保能顯示4行+2行緩衝空間
-  const viewportHeight = window.innerHeight;
-  const usedHeight = fixedRect.bottom;
-  const rowHeight = 56; // 每行約56px
-  const minVisibleRows = 4;
-  const bufferRows = 2; // 額外2行緩衝空間
-  const minHeight = rowHeight * minVisibleRows;
-  const bufferHeight = rowHeight * bufferRows;
-  // 確保至少有4行顯示 + 2行緩衝，但也要考慮實際可用高度
-  const available = Math.max(minHeight + bufferHeight, viewportHeight - usedHeight - 8);
-  wrap.style.maxHeight = `${available}px`;
-  wrap.style.overflowY = 'auto';
-  wrap.style.webkitOverflowScrolling = 'touch';
-  wrap.style.touchAction = 'pan-y';
-  // 確保可以滾動
-  wrap.style.minHeight = '0';
-  // 添加padding-bottom確保可以滾動到底部
-  wrap.style.paddingBottom = `${bufferHeight}px`;
+  // CSS Flexbox handles this now.
 }
 
 function scrollRowIntoView(row, makeSecondRow = false) {
@@ -135,35 +172,32 @@ function scrollRowIntoView(row, makeSecondRow = false) {
   // 確保wrap是可滾動的
   const overflow = getComputedStyle(wrap).overflowY;
   if (overflow !== 'auto' && overflow !== 'scroll') return;
-  
+
   // 使用setTimeout確保DOM已更新
   setTimeout(() => {
     const header = wrap.querySelector('.grid-header');
     const headerHeight = header ? header.offsetHeight : 0;
     const rowTop = row.offsetTop;
     const rowHeight = row.offsetHeight;
-    const wrapHeight = wrap.clientHeight;
-    const wrapScrollTop = wrap.scrollTop;
-    
-    let targetScrollTop;
+
+    // 簡單計算：讓row在header下方
+    let targetScrollTop = rowTop - headerHeight;
+
     if (makeSecondRow && window.innerWidth > 768) {
-      // 電腦版：讓row成為第二行（在header下方，第一行下方）
-      targetScrollTop = rowTop - headerHeight - rowHeight;
-      targetScrollTop = Math.max(0, targetScrollTop);
-    } else {
-      // 手機版和電腦版（4倍數規則）：讓row成為可見的第一行（在header下方）
-      targetScrollTop = rowTop - headerHeight;
-      targetScrollTop = Math.max(0, targetScrollTop);
+      targetScrollTop -= rowHeight;
     }
-    wrap.scrollTo({ 
+
+    targetScrollTop = Math.max(0, targetScrollTop);
+
+    wrap.scrollTo({
       top: targetScrollTop,
-      behavior: 'smooth' 
+      behavior: 'smooth'
     });
   }, 100);
 }
 
-window.addEventListener('resize', adjustSessionTableHeight);
-window.addEventListener('orientationchange', adjustSessionTableHeight);
+// window.addEventListener('resize', adjustSessionTableHeight);
+// window.addEventListener('orientationchange', adjustSessionTableHeight);
 
 // Navigation & Drawer
 const view = $('#view');
@@ -237,7 +271,7 @@ navigate('home');
 
 // 防止雙擊縮放
 let lastTouchEnd = 0;
-document.addEventListener('touchend', function(event) {
+document.addEventListener('touchend', function (event) {
   const now = Date.now();
   if (now - lastTouchEnd <= 300) {
     event.preventDefault();
@@ -248,7 +282,7 @@ document.addEventListener('touchend', function(event) {
 // 防止計時器區域的雙擊縮放
 const preventDoubleTapZoom = (element) => {
   let lastTap = 0;
-  element.addEventListener('touchend', function(event) {
+  element.addEventListener('touchend', function (event) {
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTap;
     if (tapLength < 300 && tapLength > 0) {
@@ -260,7 +294,7 @@ const preventDoubleTapZoom = (element) => {
 
 // 在renderHome時應用防止雙擊縮放
 const originalRenderHome = renderHome;
-renderHome = function() {
+renderHome = function () {
   originalRenderHome();
   const timerWrapper = $('.timer-wrapper');
   if (timerWrapper) {
@@ -437,24 +471,24 @@ function renderCycleList() {
         let dragStarted = false;
         let touchStartY = 0;
         let touchStartTime = 0;
-        
+
         // 使用 touchstart 和 pointerdown 來處理移動設備
         const startDrag = (e) => {
           // 防止默認行為
           e.preventDefault();
           e.stopPropagation();
-          
+
           // 記錄觸摸起始位置和時間
           if (e.touches) {
             touchStartY = e.touches[0].clientY;
             touchStartTime = Date.now();
           }
-          
+
           const clientY = e.touches ? e.touches[0].clientY : e.clientY;
           dragStarted = true;
           startCustomDrag(c._k, i, clientY, e);
         };
-        
+
         // 防止觸摸滾動
         const preventScroll = (e) => {
           if (dragStarted) {
@@ -462,11 +496,11 @@ function renderCycleList() {
             e.stopPropagation();
           }
         };
-        
+
         // 處理觸摸開始 - 使用 capture phase 確保優先處理
         handle.addEventListener('touchstart', startDrag, { passive: false, capture: true });
         handle.addEventListener('pointerdown', startDrag, { capture: true });
-        
+
         // 防止文字選取和上下文菜單 - 使用 capture phase
         const preventSelect = (e) => {
           e.preventDefault();
@@ -477,12 +511,12 @@ function renderCycleList() {
         handle.addEventListener('contextmenu', preventSelect, { capture: true });
         handle.addEventListener('dragstart', preventSelect, { capture: true });
         handle.addEventListener('touchmove', preventScroll, { passive: false, capture: true });
-        
+
         // 在 row 層級也防止選取
         row.addEventListener('selectstart', preventSelect, { capture: true });
         row.addEventListener('contextmenu', preventSelect, { capture: true });
         row.addEventListener('dragstart', preventSelect, { capture: true });
-        
+
         // 重置標記
         const resetDrag = () => {
           dragStarted = false;
@@ -545,53 +579,66 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     startEvent.stopPropagation();
   }
 
-  wrap.style.position = wrap.style.position || 'relative';
-
+  // Cache geometry
   const wrapRect = wrap.getBoundingClientRect();
   const rowRect = row.getBoundingClientRect();
+  const rowHeight = rowRect.height;
   const grabOffset = startClientY - rowRect.top;
 
+  // Create placeholder
   const placeholder = document.createElement('div');
   placeholder.className = 'row-placeholder';
-  placeholder.style.height = `${rowRect.height}px`;
+  placeholder.style.height = `${rowHeight}px`;
   placeholder.style.width = `${rowRect.width}px`;
-  wrap.insertBefore(placeholder, row);
-  wrap.removeChild(row);
 
-  const ghost = row;
+  // Insert placeholder and remove row from flow
+  wrap.insertBefore(placeholder, row);
+
+  // Create ghost
+  const ghost = row; // Reuse the element
   ghost.classList.add('dragging');
   ghost.style.position = 'fixed';
   ghost.style.left = `${rowRect.left}px`;
   ghost.style.top = `${rowRect.top}px`;
   ghost.style.width = `${rowRect.width}px`;
-  ghost.style.pointerEvents = 'none';
+  ghost.style.zIndex = '1000';
   ghost.style.margin = '0';
-  ghost.style.zIndex = '50';
   document.body.appendChild(ghost);
   document.body.classList.add('dragging-global');
 
   const getClientY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
-
-  function movePlaceholder(centerY) {
-    const rows = Array.from(wrap.querySelectorAll('.cycle-row, .row-placeholder')).filter((el) => el !== placeholder && el.classList.contains('cycle-row'));
-    for (const target of rows) {
-      const targetRect = target.getBoundingClientRect();
-      const targetCenter = targetRect.top - wrapRect.top + targetRect.height / 2 + wrap.scrollTop;
-      if (centerY < targetCenter) {
-        wrap.insertBefore(placeholder, target);
-        return;
-      }
-    }
-    wrap.appendChild(placeholder);
-  }
 
   function onMove(e) {
     e.preventDefault();
     const clientY = getClientY(e);
     const targetTop = clientY - grabOffset;
     ghost.style.top = `${targetTop}px`;
-    const relativeCenter = clientY - wrapRect.top + wrap.scrollTop;
-    movePlaceholder(relativeCenter);
+
+    const ghostCenterY = targetTop + rowHeight / 2;
+
+    // Optimization: Only check immediate neighbors
+    // Check previous
+    const prev = placeholder.previousElementSibling;
+    if (prev && prev.classList.contains('cycle-row')) {
+      const rect = prev.getBoundingClientRect();
+      const center = rect.top + rect.height / 2;
+      if (ghostCenterY < center) {
+        wrap.insertBefore(placeholder, prev);
+        return;
+      }
+    }
+
+    // Check next
+    const next = placeholder.nextElementSibling;
+    if (next && next.classList.contains('cycle-row')) {
+      const rect = next.getBoundingClientRect();
+      const center = rect.top + rect.height / 2;
+      if (ghostCenterY > center) {
+        // Insert after next (insertBefore next's sibling)
+        wrap.insertBefore(placeholder, next.nextElementSibling);
+        return;
+      }
+    }
   }
 
   function cleanup() {
@@ -611,22 +658,41 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     cleanup();
     document.body.classList.remove('dragging-global');
 
-    ghost.classList.remove('dragging');
-    ghost.style.position = '';
-    ghost.style.left = '';
-    ghost.style.top = '';
-    ghost.style.width = '';
-    ghost.style.pointerEvents = '';
-    ghost.style.margin = '';
+    // Animate ghost back to placeholder position
+    const destRect = placeholder.getBoundingClientRect();
 
-    wrap.insertBefore(ghost, placeholder);
-    placeholder.remove();
+    ghost.style.transition = 'all 0.2s ease';
+    ghost.style.left = `${destRect.left}px`;
+    ghost.style.top = `${destRect.top}px`;
 
-    const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
-    const map = new Map(table.cycles.map((c) => [c._k, c]));
-    table.cycles = keys.map((k) => map.get(k));
-    state.editing.dirty = true;
-    renderCycleList();
+    ghost.addEventListener(
+      'transitionend',
+      () => {
+        ghost.classList.remove('dragging');
+        ghost.style.position = '';
+        ghost.style.left = '';
+        ghost.style.top = '';
+        ghost.style.width = '';
+        ghost.style.zIndex = '';
+        ghost.style.margin = '';
+        ghost.style.transition = '';
+
+        if (placeholder.parentNode) {
+          wrap.insertBefore(ghost, placeholder);
+          placeholder.remove();
+        } else {
+          wrap.appendChild(ghost);
+        }
+
+        // Sync state
+        const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
+        const map = new Map(table.cycles.map((c) => [c._k, c]));
+        table.cycles = keys.map((k) => map.get(k)).filter(Boolean);
+        state.editing.dirty = true;
+        renderCycleList();
+      },
+      { once: true }
+    );
   }
 
   window.addEventListener('pointermove', onMove, { passive: false, capture: true });
@@ -647,10 +713,10 @@ function renderHome() {
   $('#plus10Btn').addEventListener('click', () => adjustRemaining(10));
   $('#stopBtn').addEventListener('click', stopSession);
   $('#markDiaphragmBtn').addEventListener('click', markDiaphragm);
-  drawRing(0, '#2a2f3b', '#3a4152');
+  drawRing(0, '#64ffda', 'rgba(136, 146, 176, 0.2)');
   updateHomeUI();
   adjustSessionTableHeight();
-  
+
 }
 
 function togglePauseOrStart() {
@@ -713,7 +779,7 @@ function openPicker() {
         </div>
         <div class="icon" style="font-size:26px">🫁</div>
       </div>
-      <div class="meta">Total time: ${secToMMSS(t.cycles.reduce((s,c)=>s+c.hold+c.breath,0))}</div>
+      <div class="meta">Total time: ${secToMMSS(t.cycles.reduce((s, c) => s + c.hold + c.breath, 0))}</div>
     `;
     card.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -739,7 +805,7 @@ function updateHomeUI() {
   const pauseBtn = $('#pauseBtn');
   const skipBtn = $('#skipBtn');
   const paused = running && state.session.paused;
-  
+
   // 鎖定選擇TABLE按鈕（如果正在運行）
   if (running) {
     pickTableBtn.classList.add('disabled');
@@ -751,7 +817,7 @@ function updateHomeUI() {
     pickTableBtn.title = '';
     pickTableBtn.textContent = t ? `${t.name} ▾` : '選擇 Table ▾';
   }
-  
+
   if (!running) {
     lung.classList.add('disabled');
     lung.disabled = true;
@@ -891,6 +957,9 @@ function startSession() {
     contractionTime: null, // timestamp when contraction was marked
     prepareAddedSeconds: 0, // prepare階段添加的秒數
   };
+  initAudio();
+  playStartSound();
+  requestWakeLock();
   tick();
   updateHomeUI();
 }
@@ -900,9 +969,15 @@ function togglePause() {
   const wasPaused = state.session.paused;
   state.session.paused = !state.session.paused;
   state.session.lastTick = performance.now();
-  // 電腦版：如果從暫停變為繼續，設置標記以觸發自動滾動
-  if (wasPaused && !state.session.paused && window.innerWidth > 768) {
-    state.session.justResumed = true;
+
+  if (state.session.paused) {
+    releaseWakeLock();
+  } else {
+    requestWakeLock();
+    // 電腦版：如果從暫停變為繼續，設置標記以觸發自動滾動
+    if (wasPaused && window.innerWidth > 768) {
+      state.session.justResumed = true;
+    }
   }
   updateHomeUI();
 }
@@ -915,7 +990,9 @@ function skipPhase() {
 function stopSession() {
   cancelAnimationFrame(rafId);
   state.session = null;
-  drawRing(0, '#2a2f3b', '#3a4152');
+  releaseWakeLock();
+  playStopSound();
+  drawRing(0, '#64ffda', 'rgba(136, 146, 176, 0.2)');
   $('#timeText').textContent = '00:00';
   $('#phaseText').textContent = 'Prepare';
   updateHomeUI();
@@ -956,41 +1033,49 @@ function markDiaphragm() {
   updateHomeUI();
 }
 
-function nextPhase() {
+function nextPhase(overflow = 0) {
   const t = state.data.tables.find((x) => x.id === state.session.tableId);
-  if (!t) return stopSession();
+  if (!t) {
+    stopSession();
+    return false;
+  }
   // 清除contractionTime，因為進入新階段
   state.session.contractionTime = null;
+
   if (state.session.phase === 'prepare') {
     state.session.index = 0;
     state.session.phase = 'hold';
     state.session.holdPlanned = t.cycles[0].hold;
-    state.session.phaseRemaining = t.cycles[0].hold;
+    state.session.phaseRemaining = t.cycles[0].hold - overflow;
     state.session.holdStartSec = t.cycles[0].hold;
     // 清除prepare的添加秒數
     state.session.prepareAddedSeconds = 0;
+    playPhaseChangeSound('hold');
   } else if (state.session.phase === 'hold') {
     // 如果是最後一個循環，hold結束時直接停止訓練
     if (state.session.index === t.cycles.length - 1) {
       stopSession();
-      return;
+      return false;
     }
     state.session.phase = 'breath';
-    state.session.phaseRemaining = t.cycles[state.session.index].breath;
+    state.session.phaseRemaining = t.cycles[state.session.index].breath - overflow;
+    playPhaseChangeSound('breath');
   } else if (state.session.phase === 'breath') {
     const nextIdx = state.session.index + 1;
     if (nextIdx >= t.cycles.length) {
       stopSession();
-      return;
+      return false;
     }
     state.session.index = nextIdx;
     state.session.phase = 'hold';
     state.session.holdPlanned = t.cycles[nextIdx].hold;
-    state.session.phaseRemaining = t.cycles[nextIdx].hold;
+    state.session.phaseRemaining = t.cycles[nextIdx].hold - overflow;
     // 清除新循環的contractionTime，讓肺部按鈕可以再次使用
     state.session.contractionTime = null;
+    playPhaseChangeSound('hold');
   }
   updateHomeUI();
+  return true;
 }
 
 function tick(now = performance.now()) {
@@ -998,13 +1083,15 @@ function tick(now = performance.now()) {
   const s = state.session;
   const dt = Math.max(0, (now - s.lastTick) / 1000);
   s.lastTick = now;
+
   if (!s.paused) {
     s.phaseRemaining -= dt;
-    if (s.phaseRemaining <= 0) {
-      nextPhase();
-      // 更新時間戳，確保下一幀計算正確
-      s.lastTick = now;
-      // 繼續執行動畫循環，不要return
+
+    // Handle phase overflow (loop until phaseRemaining > 0 or session ends)
+    while (s.phaseRemaining <= 0 && s.session && !s.paused) {
+      const overflow = Math.abs(s.phaseRemaining);
+      const continued = nextPhase(overflow);
+      if (!continued) return; // Session ended
     }
   }
   // draw
@@ -1019,10 +1106,10 @@ function tick(now = performance.now()) {
     s.phase === 'prepare'
       ? 10 + prepareAdded
       : s.phase === 'hold'
-      ? s.holdPlanned + holdAdded
-      : table && table.cycles[s.index]
-      ? table.cycles[s.index].breath + breathAdded
-      : 0;
+        ? s.holdPlanned + holdAdded
+        : table && table.cycles[s.index]
+          ? table.cycles[s.index].breath + breathAdded
+          : 0;
   // 計算progress：基於當前剩餘時間和總計劃時間（包括添加的秒數）
   let progress = 0;
   if (planned > 0) {
@@ -1035,7 +1122,7 @@ function tick(now = performance.now()) {
     }
   }
   const color =
-    s.phase === 'prepare' ? '#3b82f6' : s.phase === 'hold' ? '#ef5350' : '#26a69a';
+    s.phase === 'prepare' ? '#64ffda' : s.phase === 'hold' ? '#ff7043' : '#64ffda';
   let markFraction = null;
   if (s.phase === 'hold' && s.contractionTime != null) {
     // 如果有記錄contraction時間，計算從按下那一刻到現在的進度
@@ -1049,7 +1136,7 @@ function tick(now = performance.now()) {
       }
     }
   }
-  drawRing(progress, color, '#3a4152', markFraction);
+  drawRing(progress, color, 'rgba(136, 146, 176, 0.2)', markFraction);
   rafId = requestAnimationFrame(tick);
 }
 
@@ -1061,7 +1148,7 @@ function drawRing(progress, color, bg, markFraction = null) {
   ctx.clearRect(0, 0, w, h);
   // 縮小圓圈：手機版半徑更小，但厚度不變
   const isMobile = window.innerWidth <= 768;
-  const radiusOffset = isMobile ? 35 : 30;
+  const radiusOffset = isMobile ? 65 : 50;
   const r = Math.min(w, h) / 2 - radiusOffset;
   const cx = w / 2;
   const cy = h / 2;
@@ -1083,7 +1170,7 @@ function drawRing(progress, color, bg, markFraction = null) {
   // 確保progress不超過1（圓圈最多100%）
   const clampedProgress = Math.min(1, progress);
   const actualEnd = start + tau * clampedProgress;
-  
+
   // 如果有標記點，且標記點在進度範圍內，則分段繪製
   if (clampedMark != null && clampedMark > 0 && clampedMark <= clampedProgress) {
     const splitAngle = start + tau * clampedMark;
