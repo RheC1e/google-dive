@@ -36,16 +36,24 @@ function cryptoRandomId() {
 function loadData() {
   try {
     const raw = localStorage.getItem(storeKey);
-    if (!raw) return { tables: defaultTables };
+    if (!raw) {
+      const initial = { tables: defaultTables, defaultTableId: null };
+      localStorage.setItem(storeKey, JSON.stringify(initial));
+      return initial;
+    }
     const parsed = JSON.parse(raw);
     if (!parsed.tables || !Array.isArray(parsed.tables) || parsed.tables.length === 0) {
-      const fallback = { tables: defaultTables };
+      const fallback = { tables: defaultTables, defaultTableId: null };
       localStorage.setItem(storeKey, JSON.stringify(fallback));
       return fallback;
     }
+    // Ensure defaultTableId exists
+    if (!parsed.defaultTableId) {
+      parsed.defaultTableId = null;
+    }
     return parsed;
   } catch {
-    const fallback = { tables: defaultTables };
+    const fallback = { tables: defaultTables, defaultTableId: null };
     localStorage.setItem(storeKey, JSON.stringify(fallback));
     return fallback;
   }
@@ -162,6 +170,15 @@ const state = {
   session: null, // created after start
 };
 
+// Initialize currentTableId with default or first table
+if (!state.currentTableId) {
+  if (state.data.defaultTableId && state.data.tables.find(t => t.id === state.data.defaultTableId)) {
+    state.currentTableId = state.data.defaultTableId;
+  } else if (state.data.tables.length > 0) {
+    state.currentTableId = state.data.tables[0].id;
+  }
+}
+
 function adjustSessionTableHeight() {
   // CSS Flexbox handles this now.
 }
@@ -259,6 +276,11 @@ $$('.drawer-item').forEach((btn) => {
 });
 
 function navigate(route) {
+  // 如果離開主頁且有計時器在運行，停止並重置
+  if (route !== 'home' && state.session) {
+    stopSession();
+  }
+
   state.route = route;
   if (route === 'home') renderHome();
   if (route === 'tables') renderTables();
@@ -319,16 +341,43 @@ function renderTables() {
     const card = document.createElement('div');
     card.className = 'card';
     const total = t.cycles.reduce((sum, c) => sum + c.hold + c.breath, 0);
+    const isDefault = state.data.defaultTableId === t.id;
     card.innerHTML = `
       <div class="row" style="display:flex;gap:10px;align-items:center;justify-content:space-between">
         <div>
           <div style="font-weight:700;font-size:18px">${t.name}</div>
           <div class="desc">${t.description || ''}</div>
         </div>
-        <div class="icon" style="font-size:28px">🫁</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="icon-btn default-btn" data-table-id="${t.id}" title="${isDefault ? '取消預設' : '設為預設'}" style="font-size:24px;padding:4px">
+            ${isDefault ? '⭐' : '☆'}
+          </button>
+          <div class="icon" style="font-size:28px">
+            <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
+              <path d="M12 7v-2m0 10v2"></path>
+              <path d="M9 11c-2.5 .5 -3.5 2.5 -3.5 4.5c0 1.5 1 3 2.5 3.5"></path>
+              <path d="M15 11c2.5 .5 3.5 2.5 3.5 4.5c0 1.5 -1 3 -2.5 3.5"></path>
+            </svg>
+          </div>
+        </div>
       </div>
       <div class="meta">Total time: ${secToMMSS(total)}</div>
     `;
+
+    // Handle default button click
+    const defaultBtn = card.querySelector('.default-btn');
+    defaultBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (state.data.defaultTableId === t.id) {
+        state.data.defaultTableId = null;
+      } else {
+        state.data.defaultTableId = t.id;
+      }
+      saveData(state.data);
+      renderTables();
+    });
+
     card.addEventListener('click', () => openEditTable(t.id));
     list.appendChild(card);
   });
@@ -594,8 +643,8 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   // Insert placeholder and remove row from flow
   wrap.insertBefore(placeholder, row);
 
-  // Create ghost
-  const ghost = row; // Reuse the element
+  // Create ghost - use transform for better performance
+  const ghost = row;
   ghost.classList.add('dragging');
   ghost.style.position = 'fixed';
   ghost.style.left = `${rowRect.left}px`;
@@ -603,7 +652,9 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   ghost.style.width = `${rowRect.width}px`;
   ghost.style.zIndex = '1000';
   ghost.style.margin = '0';
-  ghost.style.willChange = 'top';
+  ghost.style.willChange = 'transform';
+
+  let translateY = 0;
   document.body.appendChild(ghost);
   document.body.classList.add('dragging-global');
 
@@ -612,11 +663,34 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
   let currentClientY = startClientY;
   let rafId = null;
   let lastSwapTime = 0;
-  const SWAP_THROTTLE = 50; // ms
+  const SWAP_THROTTLE = 16; // Reduce to ~1 frame for better sync
+
+  // Cache neighbor positions
+  let cachedPositions = [];
+
+  function updateCache() {
+    cachedPositions = [];
+    const rows = Array.from(wrap.querySelectorAll('.cycle-row'));
+    rows.forEach(r => {
+      if (r === ghost) return;
+      const rect = r.getBoundingClientRect();
+      cachedPositions.push({
+        element: r,
+        top: rect.top,
+        bottom: rect.bottom,
+        center: rect.top + rect.height / 2
+      });
+    });
+  }
+
+  updateCache();
 
   function update() {
     const targetTop = currentClientY - grabOffset;
-    ghost.style.top = `${targetTop}px`;
+    translateY = targetTop - rowRect.top;
+
+    // Use transform instead of top for better performance
+    ghost.style.transform = `translateY(${translateY}px)`;
 
     const now = Date.now();
     if (now - lastSwapTime < SWAP_THROTTLE) {
@@ -626,34 +700,30 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
 
     const ghostCenterY = targetTop + rowHeight / 2;
 
-    // Optimization: Only check immediate neighbors
-    // Check previous
+    // Only check immediate neighbors using cached positions
     const prev = placeholder.previousElementSibling;
     if (prev && prev.classList.contains('cycle-row')) {
-      const rect = prev.getBoundingClientRect();
-      const center = rect.top + rect.height / 2;
-      if (ghostCenterY < center) {
+      const cached = cachedPositions.find(p => p.element === prev);
+      if (cached && ghostCenterY < cached.center) {
         wrap.insertBefore(placeholder, prev);
         lastSwapTime = now;
+        updateCache();
       }
     }
 
-    // Check next
     const next = placeholder.nextElementSibling;
     if (next && next.classList.contains('cycle-row')) {
-      const rect = next.getBoundingClientRect();
-      const center = rect.top + rect.height / 2;
-      if (ghostCenterY > center) {
-        // Insert after next (insertBefore next's sibling)
+      const cached = cachedPositions.find(p => p.element === next);
+      if (cached && ghostCenterY > cached.center) {
         wrap.insertBefore(placeholder, next.nextElementSibling);
         lastSwapTime = now;
+        updateCache();
       }
     }
 
     rafId = requestAnimationFrame(update);
   }
 
-  // Start the animation loop
   rafId = requestAnimationFrame(update);
 
   function onMove(e) {
@@ -679,43 +749,30 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
     cleanup();
     document.body.classList.remove('dragging-global');
 
-    // Animate ghost back to placeholder position
-    const destRect = placeholder.getBoundingClientRect();
+    // Remove ghost styles immediately without transition
+    ghost.classList.remove('dragging');
+    ghost.style.position = '';
+    ghost.style.left = '';
+    ghost.style.top = '';
+    ghost.style.width = '';
+    ghost.style.zIndex = '';
+    ghost.style.margin = '';
+    ghost.style.transform = '';
+    ghost.style.willChange = '';
 
-    ghost.style.willChange = 'auto';
-    ghost.style.transition = 'all 0.2s ease';
-    ghost.style.left = `${destRect.left}px`;
-    ghost.style.top = `${destRect.top}px`;
+    if (placeholder.parentNode) {
+      wrap.insertBefore(ghost, placeholder);
+      placeholder.remove();
+    } else {
+      wrap.appendChild(ghost);
+    }
 
-    ghost.addEventListener(
-      'transitionend',
-      () => {
-        ghost.classList.remove('dragging');
-        ghost.style.position = '';
-        ghost.style.left = '';
-        ghost.style.top = '';
-        ghost.style.width = '';
-        ghost.style.zIndex = '';
-        ghost.style.margin = '';
-        ghost.style.transition = '';
-        ghost.style.willChange = '';
-
-        if (placeholder.parentNode) {
-          wrap.insertBefore(ghost, placeholder);
-          placeholder.remove();
-        } else {
-          wrap.appendChild(ghost);
-        }
-
-        // Sync state
-        const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
-        const map = new Map(table.cycles.map((c) => [c._k, c]));
-        table.cycles = keys.map((k) => map.get(k)).filter(Boolean);
-        state.editing.dirty = true;
-        renderCycleList();
-      },
-      { once: true }
-    );
+    // Sync state
+    const keys = Array.from(wrap.querySelectorAll('.cycle-row')).map((el) => el.dataset.key);
+    const map = new Map(table.cycles.map((c) => [c._k, c]));
+    table.cycles = keys.map((k) => map.get(k)).filter(Boolean);
+    state.editing.dirty = true;
+    renderCycleList();
   }
 
   window.addEventListener('pointermove', onMove, { passive: false, capture: true });
@@ -1111,7 +1168,7 @@ function tick(now = performance.now()) {
     s.phaseRemaining -= dt;
 
     // Handle phase overflow (loop until phaseRemaining > 0 or session ends)
-    while (s.phaseRemaining <= 0 && s.session && !s.paused) {
+    while (s.phaseRemaining <= 0 && state.session && !s.paused) {
       const overflow = Math.abs(s.phaseRemaining);
       const continued = nextPhase(overflow);
       if (!continued) return; // Session ended
