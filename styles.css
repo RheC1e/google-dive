@@ -100,20 +100,6 @@ body {
   background: transparent;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  gap: 16px;
-  background: rgba(10, 25, 47, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--glass-border);
-  position: sticky;
-  top: 0;
-}
-
 /* App Bar */
 .app-bar {
   display: flex;
