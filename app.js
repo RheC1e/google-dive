@@ -586,8 +586,11 @@ function renderCycleList() {
           dragStarted = false;
         };
         handle.addEventListener('touchend', resetDrag);
-        wrap.appendChild(row);
-      });
+        handle.addEventListener('touchcancel', resetDrag);
+      }
+    }
+    wrap.appendChild(row);
+  });
   const afterRects = getRects(wrap);
   // 進入頁面或重繪後動畫（從 lastRects 轉場）
   if (state.editing.lastRects) animateReorder(state.editing.lastRects);
