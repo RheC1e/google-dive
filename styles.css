@@ -36,6 +36,7 @@ body {
   position: fixed;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body {
@@ -296,6 +297,23 @@ body {
   background: transparent;
 }
 
+/* Ensure Edit Table fills screen and scrolls */
+.edit-table {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.edit-table .table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  touch-action: pan-y;
+}
+
 /* Home Layout */
 .home {
   position: relative;
@@ -475,7 +493,7 @@ body {
   background: rgba(2, 12, 27, 0.3);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   position: relative;
-  padding-bottom: 80px;
+  padding-bottom: 120px;
 }
 
 .grid-header {
@@ -761,6 +779,7 @@ body {
   .home-fixed {
     gap: 4px;
     padding-bottom: 4px;
+    margin-top: -20px;
   }
 
   .timer-wrapper {
@@ -795,25 +814,25 @@ body {
     font-size: 20px;
   }
 
-  /* Mobile corner positions - Push to edges to save vertical space */
+  /* Mobile corner positions - Better positioning */
   .corner-btn.corner-top-left {
-    top: 30px;
-    left: -10px;
+    top: 40px;
+    left: 10px;
   }
 
   .corner-btn.corner-top-right {
-    top: 30px;
-    right: -10px;
+    top: 40px;
+    right: 10px;
   }
 
   .corner-btn.corner-bottom-left {
-    bottom: 30px;
-    left: -10px;
+    bottom: 20px;
+    left: 10px;
   }
 
   .corner-btn.corner-bottom-right {
-    bottom: 30px;
-    right: -10px;
+    bottom: 20px;
+    right: 10px;
   }
 
   .home .controls.primary {
@@ -826,6 +845,13 @@ body {
     min-height: 0;
     padding-bottom: 40px;
     /* Add padding for scrolling space */
+  }
+
+  .edit-table .cycle-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 120px;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Fix scrolling lock issue */
