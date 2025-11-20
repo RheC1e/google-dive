@@ -799,7 +799,7 @@ function renderHome() {
   $('#skipBtn').addEventListener('click', skipPhase);
   $('#plus10Btn').addEventListener('click', () => adjustRemaining(10));
   $('#stopBtn').addEventListener('click', stopSession);
-
+  $('#markDiaphragmBtn').addEventListener('click', markDiaphragm);
   drawRing(0, '#64ffda', 'rgba(136, 146, 176, 0.2)');
   updateHomeUI();
   adjustSessionTableHeight();
