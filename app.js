@@ -171,6 +171,11 @@ const state = {
 };
 
 // Initialize currentTableId with default or first table
+if (!state.data.defaultTableId && state.data.tables.length > 0) {
+  state.data.defaultTableId = state.data.tables[0].id;
+  saveData(state.data);
+}
+
 if (!state.currentTableId) {
   if (state.data.defaultTableId && state.data.tables.find(t => t.id === state.data.defaultTableId)) {
     state.currentTableId = state.data.defaultTableId;
@@ -337,6 +342,13 @@ function renderTables() {
     state.data.tables = JSON.parse(JSON.stringify(defaultTables));
     saveData(state.data);
   }
+
+  // Ensure a default table is set if none exists
+  if (!state.data.defaultTableId && state.data.tables.length > 0) {
+    state.data.defaultTableId = state.data.tables[0].id;
+    saveData(state.data);
+  }
+
   tables.forEach((t) => {
     const card = document.createElement('div');
     card.className = 'card';
@@ -352,14 +364,6 @@ function renderTables() {
           <button class="icon-btn default-btn" data-table-id="${t.id}" title="${isDefault ? '取消預設' : '設為預設'}" style="font-size:24px;padding:4px">
             ${isDefault ? '⭐' : '☆'}
           </button>
-          <div class="icon" style="font-size:28px">
-            <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path>
-              <path d="M12 7v-2m0 10v2"></path>
-              <path d="M9 11c-2.5 .5 -3.5 2.5 -3.5 4.5c0 1.5 1 3 2.5 3.5"></path>
-              <path d="M15 11c2.5 .5 3.5 2.5 3.5 4.5c0 1.5 -1 3 -2.5 3.5"></path>
-            </svg>
-          </div>
         </div>
       </div>
       <div class="meta">Total time: ${secToMMSS(total)}</div>
@@ -491,7 +495,7 @@ function renderCycleList() {
       <div><button class="btn" data-kind="hold">${secToMMSS(c.hold)}</button></div>
       <div><button class="btn" data-kind="breath">${secToMMSS(c.breath)}</button></div>
       <div class="right">
-        ${reorderMode ? '<span class="handle">≡</span>' : '<button class="icon-btn trash" title="刪除">🗑</button>'}
+        ${reorderMode ? '<span class="handle">≡</span>' : '<button class="icon-btn trash" title="刪除"><svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>'}
       </div>
     `;
     const btns = $$('button.btn', row);
@@ -508,10 +512,13 @@ function renderCycleList() {
       });
     });
     if (!reorderMode) {
-      $('.trash', row).addEventListener('click', () => {
-        table.cycles.splice(i, 1);
-        state.editing.dirty = true;
-        renderCycleList();
+      $('.trash', row).addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Delete this row?')) {
+          table.cycles.splice(i, 1);
+          state.editing.dirty = true;
+          renderCycleList();
+        }
       });
     } else {
       // 自訂拖曳：列跟著手指移動，經過時即時交換位置
@@ -792,7 +799,7 @@ function renderHome() {
   $('#skipBtn').addEventListener('click', skipPhase);
   $('#plus10Btn').addEventListener('click', () => adjustRemaining(10));
   $('#stopBtn').addEventListener('click', stopSession);
-  $('#markDiaphragmBtn').addEventListener('click', markDiaphragm);
+
   drawRing(0, '#64ffda', 'rgba(136, 146, 176, 0.2)');
   updateHomeUI();
   adjustSessionTableHeight();
