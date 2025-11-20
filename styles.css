@@ -476,7 +476,8 @@ body {
   width: 100%;
   max-width: 600px;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 /* Session Table (The Scrollable Part) */
@@ -493,14 +494,14 @@ body {
   background: rgba(2, 12, 27, 0.3);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   position: relative;
-  padding-bottom: 150px;
+  padding-bottom: 180px;
 }
 
 .grid-header {
   flex-shrink: 0;
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 16px;
+  padding: 10px 16px;
   background: rgba(10, 25, 47, 0.95);
   backdrop-filter: blur(10px);
   position: sticky;
@@ -513,6 +514,7 @@ body {
   letter-spacing: 1px;
   text-transform: uppercase;
   text-align: center;
+  align-items: center;
 }
 
 .cycle-list {
@@ -524,19 +526,18 @@ body {
 .cycle-row {
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 16px;
+  padding: 10px 16px;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
   text-align: center;
-  /* Vertical centering for items */
-  align-items: center;
 }
 
 .cycle-row>div {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 40px;
 }
 
 .cycle-row .idx {
@@ -780,7 +781,7 @@ body {
   .home-fixed {
     gap: 0px;
     padding-bottom: 0px;
-    margin-top: -30px;
+    margin-top: -40px;
   }
 
   .timer-wrapper {
@@ -838,6 +839,7 @@ body {
 
   .home .controls.primary {
     margin-top: 0px;
+    margin-bottom: 6px;
   }
 
   .session-table {
