@@ -728,6 +728,20 @@ function startCustomDrag(key, startIndex, startClientY, startEvent) {
       }
     }
 
+    // Auto-scroll when dragging near edges
+    const SCROLL_ZONE = 80; // pixels from edge to trigger scroll
+    const SCROLL_SPEED = 8; // scroll speed
+    const ghostTop = targetTop;
+    const ghostBottom = targetTop + rowHeight;
+
+    if (ghostTop < wrapRect.top + SCROLL_ZONE) {
+      // Near top - scroll up
+      wrap.scrollTop -= SCROLL_SPEED;
+    } else if (ghostBottom > wrapRect.bottom - SCROLL_ZONE) {
+      // Near bottom - scroll down
+      wrap.scrollTop += SCROLL_SPEED;
+    }
+
     rafId = requestAnimationFrame(update);
   }
 
