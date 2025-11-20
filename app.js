@@ -446,19 +446,23 @@ function renderEditTable() {
   $('#reorderBtn').addEventListener('click', () => {
     state.editing.reorderMode = !state.editing.reorderMode;
     renderCycleList();
-    // 使用 requestAnimationFrame 確保 DOM 更新後再更新按鈕狀態
-    requestAnimationFrame(() => {
-      const reorderBtn = $('#reorderBtn');
-      if (reorderBtn) {
-        if (state.editing.reorderMode) {
-          reorderBtn.classList.add('active');
-        } else {
-          reorderBtn.classList.remove('active');
-        }
-      }
-    });
+    // 立即同步更新按鈕狀態
+    updateReorderButtonState();
   });
   renderCycleList(reorderMode);
+  // 初始化按鈕狀態
+  updateReorderButtonState();
+}
+
+function updateReorderButtonState() {
+  const reorderBtn = $('#reorderBtn');
+  if (reorderBtn) {
+    if (state.editing.reorderMode) {
+      reorderBtn.classList.add('active');
+    } else {
+      reorderBtn.classList.remove('active');
+    }
+  }
 }
 
 function doSaveAndExit() {

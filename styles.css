@@ -889,9 +889,9 @@ body {
     width: 110px !important;
   }
 
-  /* Mobile: Reduce edit table header height by 20% */
-  .edit-table .grid-header {
-    padding: 7px 16px;
+  /* Mobile: Reduce edit table header height by 20% - use higher specificity */
+  .edit-table .table-container .grid-header {
+    padding: 7px 16px !important;
   }
 
   /* Fix scrolling lock issue */
