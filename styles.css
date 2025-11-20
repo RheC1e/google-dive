@@ -311,7 +311,6 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-bottom: 0;
 }
 
 /* Home Layout */
@@ -887,13 +886,6 @@ button#reorderBtn.active {
   /* Mobile: Reduce edit table header height by 20% - MUST come after general .grid-header */
   .edit-table .grid-header {
     padding: 7px 16px !important;
-  }
-
-  /* Mobile: reduce table container bottom space */
-  .edit-table .table-container,
-  .session-table {
-    margin-bottom: 0;
-    padding-bottom: 140px;
   }
 
   .edit-table .cycle-list {
