@@ -655,9 +655,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  gap: 24px;
-  /* Add gap between back button and title */
+  padding: 16px 0;
+  /* Remove horizontal padding to align back button to left edge */
+  gap: 12px;
+  /* Reduce gap by half (24px -> 12px) */
   flex-shrink: 0;
 }
 
@@ -674,6 +675,12 @@ body {
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0.5px;
+}
+
+/* Align Save button with textbox right edge */
+.edit-table .section-header {
+  padding-right: 0;
+  /* Ensure save button aligns to right edge */
 }
 
 /* Apply gradient to title in section header */
