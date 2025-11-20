@@ -432,12 +432,12 @@ body {
 }
 
 .corner-btn.corner-bottom-left {
-  bottom: 60px;
+  bottom: 0;
   left: 0;
 }
 
 .corner-btn.corner-bottom-right {
-  bottom: 60px;
+  bottom: 0;
   right: 0;
 }
 
@@ -494,14 +494,14 @@ body {
   background: rgba(2, 12, 27, 0.3);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   position: relative;
-  padding-bottom: 220px;
+  padding-bottom: 80px;
 }
 
 .grid-header {
   flex-shrink: 0;
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 6px 16px;
+  padding: 16px;
   background: rgba(10, 25, 47, 0.95);
   backdrop-filter: blur(10px);
   position: sticky;
@@ -526,7 +526,7 @@ body {
 .cycle-row {
   display: grid;
   grid-template-columns: 40px 1fr 1fr 40px;
-  padding: 10px 16px;
+  padding: 16px;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
@@ -852,11 +852,18 @@ body {
   }
 
   .session-table {
-    /* Ensure it fits on small screens */
-    flex: 1;
-    min-height: 0;
-    padding-bottom: 40px;
-    /* Add padding for scrolling space */
+    /* Mobile: Increase scroll padding */
+    padding-bottom: 220px;
+  }
+
+  .grid-header {
+    /* Mobile: Reduce header height */
+    padding: 6px 16px;
+  }
+
+  .cycle-row {
+    /* Mobile: Reduce row height */
+    padding: 10px 16px;
   }
 
   .edit-table .cycle-list {
