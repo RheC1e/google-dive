@@ -682,14 +682,6 @@ body {
   color: var(--text-secondary);
 }
 
-.edit-table .form label:first-child {
-  /* Ensure both labels have same structure */
-}
-
-.edit-table .form label:last-child {
-  /* Second label alignment */
-}
-
 .edit-table input {
   flex: 1;
   min-width: 0;
