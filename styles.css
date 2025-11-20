@@ -680,7 +680,14 @@ body {
   gap: 12px;
   font-size: 14px;
   color: var(--text-secondary);
-  white-space: nowrap;
+}
+
+.edit-table .form label:first-child {
+  /* Ensure both labels have same structure */
+}
+
+.edit-table .form label:last-child {
+  /* Second label alignment */
 }
 
 .edit-table input {
@@ -703,7 +710,7 @@ body {
 
 /* Reorder button active state */
 #reorderBtn {
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
 }
 
 #reorderBtn.active {
@@ -839,12 +846,12 @@ body {
 
   /* Mobile corner positions - Better positioning */
   .corner-btn.corner-top-left {
-    top: 40px;
+    top: 45px;
     left: 10px;
   }
 
   .corner-btn.corner-top-right {
-    top: 40px;
+    top: 45px;
     right: 10px;
   }
 
@@ -859,7 +866,7 @@ body {
   }
 
   .home .controls.primary {
-    margin-top: -60px;
+    margin-top: -50px;
     margin-bottom: 6px;
   }
 
@@ -881,7 +888,7 @@ body {
   .edit-table .cycle-list {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 60px;
+    padding-bottom: 80px;
     -webkit-overflow-scrolling: touch;
   }
 
