@@ -445,14 +445,14 @@ function renderEditTable() {
   });
   $('#reorderBtn').addEventListener('click', () => {
     state.editing.reorderMode = !state.editing.reorderMode;
-    // 更新按鈕狀態
+    renderCycleList();
+    // 更新按鈕狀態（在 renderCycleList 之後）
     const reorderBtn = $('#reorderBtn');
     if (state.editing.reorderMode) {
       reorderBtn.classList.add('active');
     } else {
       reorderBtn.classList.remove('active');
     }
-    renderCycleList();
   });
   renderCycleList(reorderMode);
 }

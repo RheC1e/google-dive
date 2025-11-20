@@ -868,8 +868,8 @@ body {
   }
 
   .grid-header {
-    /* Mobile: Increase header height */
-    padding: 11px 16px;
+    /* Mobile: Reduce header height by 20% */
+    padding: 9px 16px;
   }
 
   .cycle-row {
@@ -880,8 +880,13 @@ body {
   .edit-table .cycle-list {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 80px;
+    padding-bottom: 100px;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile: Adjust form label width for edit table */
+  .edit-table .form label span {
+    width: 110px !important;
   }
 
   /* Fix scrolling lock issue */
