@@ -877,6 +877,11 @@ body {
     padding: 10px 16px;
   }
 
+  /* Mobile: Reduce edit table header height by 20% - MUST come after general .grid-header */
+  .edit-table .table-container .grid-header {
+    padding: 7px 16px !important;
+  }
+
   .edit-table .cycle-list {
     flex: 1;
     overflow-y: auto;
@@ -887,11 +892,6 @@ body {
   /* Mobile: Adjust form label width for edit table */
   .edit-table .form label span {
     width: 110px !important;
-  }
-
-  /* Mobile: Reduce edit table header height by 20% - use higher specificity */
-  .edit-table .table-container .grid-header {
-    padding: 7px 16px !important;
   }
 
   /* Fix scrolling lock issue */
