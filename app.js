@@ -442,6 +442,16 @@ function renderEditTable() {
     table.cycles.push({ _k: cryptoRandomId(), hold: 90, breath: 90 });
     state.editing.dirty = true;
     renderCycleList();
+    // 自動滾動到最新新增的行
+    setTimeout(() => {
+      const wrap = $('#cycleList');
+      if (wrap) {
+        const lastRow = wrap.querySelector('.cycle-row:last-child');
+        if (lastRow) {
+          lastRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }, 100);
   });
   $('#reorderBtn').addEventListener('click', () => {
     state.editing.reorderMode = !state.editing.reorderMode;
