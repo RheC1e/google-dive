@@ -456,17 +456,12 @@ function renderEditTable() {
 
 function updateReorderButtonState() {
   const reorderBtn = $('#reorderBtn');
-  console.log('updateReorderButtonState called, reorderMode:', state.editing?.reorderMode, 'button:', reorderBtn);
   if (reorderBtn) {
     if (state.editing && state.editing.reorderMode) {
-      console.log('Adding active class');
       reorderBtn.classList.add('active');
     } else {
-      console.log('Removing active class');
       reorderBtn.classList.remove('active');
     }
-  } else {
-    console.log('Button not found!');
   }
 }
 

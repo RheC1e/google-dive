@@ -307,11 +307,11 @@ body {
 
 .edit-table .table-container {
   flex: 1;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   min-height: 0;
-  touch-action: pan-y;
+  margin-bottom: 0;
 }
 
 /* Home Layout */
@@ -706,9 +706,16 @@ body {
 }
 
 #reorderBtn.active {
-  background: rgba(100, 255, 218, 0.15);
-  color: var(--primary);
-  border-color: var(--primary);
+  background: rgba(100, 255, 218, 0.15) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+/* Ensure button active state is visible */
+button#reorderBtn.active {
+  background: rgba(100, 255, 218, 0.15) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
 }
 
 /* Modals */
@@ -878,8 +885,15 @@ body {
   }
 
   /* Mobile: Reduce edit table header height by 20% - MUST come after general .grid-header */
-  .edit-table .table-container .grid-header {
+  .edit-table .grid-header {
     padding: 7px 16px !important;
+  }
+
+  /* Mobile: reduce table container bottom space */
+  .edit-table .table-container,
+  .session-table {
+    margin-bottom: 0;
+    padding-bottom: 140px;
   }
 
   .edit-table .cycle-list {
