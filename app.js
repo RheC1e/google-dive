@@ -586,13 +586,14 @@ function renderCycleList() {
           dragStarted = false;
         };
         handle.addEventListener('touchend', resetDrag);
-        handle.addEventListener('touchcancel', resetDrag);
-      }
-    }
-    wrap.appendChild(row);
-  });
+        wrap.appendChild(row);
+      });
+  const afterRects = getRects(wrap);
   // 進入頁面或重繪後動畫（從 lastRects 轉場）
   if (state.editing.lastRects) animateReorder(state.editing.lastRects);
+
+  // 確保reorder按鈕狀態在渲染後正確顯示
+  updateReorderButtonState();
   // 記住這次 rects
   const rects = new Map();
   $$('.cycle-row', wrap).forEach((el) => rects.set(el.dataset.key, el.getBoundingClientRect()));
