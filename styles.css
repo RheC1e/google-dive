@@ -37,6 +37,7 @@ body {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: none;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -546,6 +547,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .icon-btn:active {
@@ -893,7 +895,7 @@ button#reorderBtn.active {
   .session-table {
     /* Mobile: Reduce scroll padding by 0.5 row and limit height */
     padding-bottom: 140px;
-    max-height: 45vh;
+    max-height: 35vh;
   }
 
   .grid-header {
