@@ -655,19 +655,22 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 10px;
+  padding: 16px 20px;
+  gap: 24px;
+  /* Add gap between back button and title */
   flex-shrink: 0;
 }
 
-.section-header .title {
+.section-header .title,
+.edit-table .title {
   flex: 1;
   text-align: left;
   /* Align left as per standard list headers, or center if preferred. User said "Title... + button on right". Usually title is left. Let's keep it flexible. */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0 10px 0 0;
-  /* Adjust margin */
+  margin: 0;
+  /* Remove margin-right as gap handles spacing */
   font-weight: 700;
   font-size: 20px;
   letter-spacing: 0.5px;
