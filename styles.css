@@ -494,7 +494,7 @@ body {
   background: rgba(2, 12, 27, 0.3);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   position: relative;
-  padding-bottom: 80px;
+  padding-bottom: 50px;
 }
 
 .grid-header {
@@ -685,6 +685,7 @@ body {
 
 .edit-table input {
   flex: 1;
+  min-width: 0;
   background: rgba(2, 12, 27, 0.5);
   border: 1px solid var(--glass-border);
   padding: 10px 14px;
@@ -698,6 +699,17 @@ body {
 .edit-table input:focus {
   border-color: var(--primary);
   outline: none;
+}
+
+/* Reorder button active state */
+#reorderBtn {
+  transition: all 0.2s;
+}
+
+#reorderBtn.active {
+  background: rgba(100, 255, 218, 0.15);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* Modals */
@@ -837,28 +849,28 @@ body {
   }
 
   .corner-btn.corner-bottom-left {
-    bottom: 80px;
+    bottom: 60px;
     left: 10px;
   }
 
   .corner-btn.corner-bottom-right {
-    bottom: 80px;
+    bottom: 60px;
     right: 10px;
   }
 
   .home .controls.primary {
-    margin-top: 0px;
+    margin-top: -60px;
     margin-bottom: 6px;
   }
 
   .session-table {
-    /* Mobile: Increase scroll padding */
-    padding-bottom: 220px;
+    /* Mobile: Adjust scroll padding */
+    padding-bottom: 160px;
   }
 
   .grid-header {
-    /* Mobile: Reduce header height */
-    padding: 6px 16px;
+    /* Mobile: Increase header height */
+    padding: 11px 16px;
   }
 
   .cycle-row {
@@ -869,7 +881,7 @@ body {
   .edit-table .cycle-list {
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 120px;
+    padding-bottom: 60px;
     -webkit-overflow-scrolling: touch;
   }
 
