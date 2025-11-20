@@ -446,13 +446,17 @@ function renderEditTable() {
   $('#reorderBtn').addEventListener('click', () => {
     state.editing.reorderMode = !state.editing.reorderMode;
     renderCycleList();
-    // 更新按鈕狀態（在 renderCycleList 之後）
-    const reorderBtn = $('#reorderBtn');
-    if (state.editing.reorderMode) {
-      reorderBtn.classList.add('active');
-    } else {
-      reorderBtn.classList.remove('active');
-    }
+    // 使用 requestAnimationFrame 確保 DOM 更新後再更新按鈕狀態
+    requestAnimationFrame(() => {
+      const reorderBtn = $('#reorderBtn');
+      if (reorderBtn) {
+        if (state.editing.reorderMode) {
+          reorderBtn.classList.add('active');
+        } else {
+          reorderBtn.classList.remove('active');
+        }
+      }
+    });
   });
   renderCycleList(reorderMode);
 }

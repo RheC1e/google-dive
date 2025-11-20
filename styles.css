@@ -863,12 +863,12 @@ body {
   }
 
   .session-table {
-    /* Mobile: Adjust scroll padding */
-    padding-bottom: 160px;
+    /* Mobile: Reduce scroll padding by 0.5 row */
+    padding-bottom: 140px;
   }
 
   .grid-header {
-    /* Mobile: Reduce header height by 20% */
+    /* Mobile: Reduce main page header height by 20% */
     padding: 9px 16px;
   }
 
@@ -887,6 +887,11 @@ body {
   /* Mobile: Adjust form label width for edit table */
   .edit-table .form label span {
     width: 110px !important;
+  }
+
+  /* Mobile: Reduce edit table header height by 20% */
+  .edit-table .grid-header {
+    padding: 7px 16px;
   }
 
   /* Fix scrolling lock issue */
