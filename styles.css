@@ -893,9 +893,9 @@ button#reorderBtn.active {
   }
 
   .session-table {
-    /* Mobile: Reduce scroll padding by 0.5 row and limit height */
-    padding-bottom: 140px;
-    max-height: 35vh;
+    /* Mobile: Reduce scroll padding and increase height */
+    padding-bottom: 100px;
+    max-height: 40vh;
   }
 
   .grid-header {
