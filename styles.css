@@ -311,6 +311,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  max-height: 55vh;
 }
 
 /* Home Layout */
@@ -484,6 +485,7 @@ body {
   flex: 1;
   width: 100%;
   max-width: 600px;
+  max-height: 50vh;
   margin: 0 auto;
   overflow-y: auto;
   overflow-x: hidden;
@@ -530,6 +532,26 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   color: var(--text-secondary);
   text-align: center;
+}
+
+.icon-btn {
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:active {
+  /* Remove default active state - use .active class instead */
+  background: transparent;
+  transform: none;
 }
 
 .cycle-row>div {
@@ -869,8 +891,9 @@ button#reorderBtn.active {
   }
 
   .session-table {
-    /* Mobile: Reduce scroll padding by 0.5 row */
+    /* Mobile: Reduce scroll padding by 0.5 row and limit height */
     padding-bottom: 140px;
+    max-height: 45vh;
   }
 
   .grid-header {
